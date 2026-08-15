@@ -20,54 +20,60 @@ export type MetaIdentity = {
 };
 
 // Facebook Login IS registration: the first successful callback creates the row, every later one
-// refreshes the name and re-seals the freshly issued long-lived token.
+// refreshes the name and re-seals the freshly issued long-lived token. One transaction, because a
+// user row without its token — or a token row for a user that was never committed — is a state the
+// login flow has no way back out of.
 export async function upsertUserFromMeta(
   db: Database,
   box: SecretBox,
   identity: MetaIdentity,
 ): Promise<UserRecord> {
   const now = new Date();
-  const [user] = await db
-    .insert(users)
-    .values({
-      id: randomUUID(),
-      fbUserId: identity.fbUserId,
-      name: identity.name ?? null,
-      createdAt: now,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: users.fbUserId,
-      set: { name: identity.name ?? null, updatedAt: now },
-    })
-    .returning({
-      id: users.id,
-      fbUserId: users.fbUserId,
-      name: users.name,
-    });
+  const sealedAccessToken = box.seal(identity.accessToken);
 
-  if (!user) {
-    throw new Error("Failed to store the Facebook user record.");
-  }
+  return db.transaction(async (tx) => {
+    const [user] = await tx
+      .insert(users)
+      .values({
+        id: randomUUID(),
+        fbUserId: identity.fbUserId,
+        name: identity.name ?? null,
+        createdAt: now,
+        updatedAt: now,
+      })
+      .onConflictDoUpdate({
+        target: users.fbUserId,
+        set: { name: identity.name ?? null, updatedAt: now },
+      })
+      .returning({
+        id: users.id,
+        fbUserId: users.fbUserId,
+        name: users.name,
+      });
 
-  await db
-    .insert(metaTokens)
-    .values({
-      userId: user.id,
-      sealedAccessToken: box.seal(identity.accessToken),
-      expiresAt: identity.expiresAt,
-      updatedAt: now,
-    })
-    .onConflictDoUpdate({
-      target: metaTokens.userId,
-      set: {
-        sealedAccessToken: box.seal(identity.accessToken),
+    if (!user) {
+      throw new Error("Failed to store the Facebook user record.");
+    }
+
+    await tx
+      .insert(metaTokens)
+      .values({
+        userId: user.id,
+        sealedAccessToken,
         expiresAt: identity.expiresAt,
         updatedAt: now,
-      },
-    });
+      })
+      .onConflictDoUpdate({
+        target: metaTokens.userId,
+        set: {
+          sealedAccessToken,
+          expiresAt: identity.expiresAt,
+          updatedAt: now,
+        },
+      });
 
-  return user;
+    return user;
+  });
 }
 
 export async function readUser(

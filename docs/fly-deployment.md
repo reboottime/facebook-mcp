@@ -73,7 +73,10 @@ Expected set for this product (extend as built):
 | Key | Value / source |
 |---|---|
 | `DATABASE_URL` | Neon **direct** string (§4) |
-| `META_APP_ID` / `META_APP_SECRET` | Meta developer app credentials |
+| `PUBLIC_URL` | canonical public origin, e.g. `https://<app>.fly.dev` — the OAuth issuer, redirect URIs, and token audience are all derived from it |
+| `HOST` | `0.0.0.0` — the app defaults to `127.0.0.1`, which is unreachable from outside the VM |
+| `TOKEN_ENCRYPTION_KEY` | 32 bytes base64, `openssl rand -base64 32` — encrypts stored Meta tokens at rest; unset means a per-process key and stored credentials die on restart |
+| `FB_APP_ID` / `FB_APP_SECRET` | Meta developer app credentials (Facebook Login) |
 | `META_ACCESS_TOKEN` | long-lived Page/IG access token (rotate per Meta expiry policy) |
 | `MCP_AUTH_TOKEN` | random, `openssl rand -base64 32` — bearer for the remote MCP transport |
 | `CRON_SECRET` | random — bearer for any `/cron/*` endpoints |

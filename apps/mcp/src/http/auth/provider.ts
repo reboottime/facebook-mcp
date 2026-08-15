@@ -34,7 +34,11 @@ import { resourceUrl } from "../config.js";
 import type { HttpDeps } from "../deps.js";
 import { readSession } from "../sessions.js";
 import { createClientsStore } from "./clients-store.js";
-import { renderConsentPage, sealPendingGrant } from "./consent.js";
+import {
+  renderConsentPage,
+  sealPendingGrant,
+  type PendingGrant,
+} from "./consent.js";
 
 // Short enough that a code leaked through a referrer or a shell history is dead before it can be
 // spent, long enough for a browser redirect and a token request over a slow link.
@@ -68,22 +72,21 @@ export function createOAuthProvider(deps: HttpDeps): OAuthServerProvider {
         return Promise.resolve();
       }
 
-      const scopes = params.scopes?.length ? params.scopes : DEFAULT_SCOPES;
-      const grant = sealPendingGrant(deps, {
+      const grant: PendingGrant = {
         clientId: client.client_id,
         redirectUri: params.redirectUri,
         codeChallenge: params.codeChallenge,
-        scopes,
+        scopes: params.scopes?.length ? params.scopes : DEFAULT_SCOPES,
         state: params.state,
         resource,
         userId: session.userId,
         expiresAt: Date.now() + 10 * 60_000,
-      });
+      };
 
       res
         .status(200)
         .type("html")
-        .send(renderConsentPage(client, scopes, grant));
+        .send(renderConsentPage(client, grant, sealPendingGrant(deps, grant)));
 
       return Promise.resolve();
     },
@@ -247,11 +250,41 @@ export function createOAuthProvider(deps: HttpDeps): OAuthServerProvider {
       return authInfo;
     },
 
+    // RFC 7009 §2.1: a client may only revoke its own tokens. §2.2 makes the failure silent —
+    // a token this client does not own is answered exactly like an unknown one, so revocation
+    // cannot be used to probe which token strings exist.
     revokeToken: async (
-      _client: OAuthClientInformationFull,
+      client: OAuthClientInformationFull,
       request: OAuthTokenRevocationRequest,
     ) => {
-      await revokeAccessToken(deps.db, request.token);
+      const access = await readAccessToken(deps.db, request.token);
+
+      if (access) {
+        if (access.clientId === client.client_id) {
+          await revokeAccessToken(deps.db, request.token);
+        } else {
+          logWarn(
+            `oauth: client ${client.client_id} tried to revoke an access token issued to another client; ignored`,
+          );
+        }
+
+        return;
+      }
+
+      const refresh = await readRefreshToken(deps.db, request.token);
+
+      if (!refresh) {
+        return;
+      }
+
+      if (refresh.clientId !== client.client_id) {
+        logWarn(
+          `oauth: client ${client.client_id} tried to revoke a refresh token issued to another client; ignored`,
+        );
+
+        return;
+      }
+
       await revokeRefreshToken(deps.db, request.token);
     },
   };

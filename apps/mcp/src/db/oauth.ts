@@ -1,4 +1,4 @@
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNull, lt } from "drizzle-orm";
 
 import { hashToken } from "../secret-box.js";
 import type { Database } from "./client.js";
@@ -221,6 +221,25 @@ export async function revokeFamily(
         isNull(oauthRefreshTokens.revokedAt),
       ),
     );
+}
+
+// Nothing reads a credential past its expiry — every code and token path checks `expires_at` before
+// honouring a row — so expired rows are dead weight. The grace period is what keeps an audit of the
+// recent past: a revoked-family investigation still has the rows it needs.
+const EXPIRED_ROW_GRACE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export async function deleteExpiredOAuthRows(db: Database): Promise<void> {
+  const cutoff = new Date(Date.now() - EXPIRED_ROW_GRACE_MS);
+
+  await db
+    .delete(oauthAuthorizationCodes)
+    .where(lt(oauthAuthorizationCodes.expiresAt, cutoff));
+
+  await db.delete(oauthAccessTokens).where(lt(oauthAccessTokens.expiresAt, cutoff));
+
+  await db
+    .delete(oauthRefreshTokens)
+    .where(lt(oauthRefreshTokens.expiresAt, cutoff));
 }
 
 export async function revokeAccessToken(

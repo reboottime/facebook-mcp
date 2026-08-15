@@ -140,13 +140,15 @@ const SCOPE_DESCRIPTIONS: Record<string, string> = {
     "Publish, schedule, read, and moderate content on the Facebook Page you select, and its linked Instagram account.",
 };
 
+// The page describes the grant that is sealed into it — the scopes and the redirect target the
+// user is actually approving, not whichever URI the client happened to register first.
 export function renderConsentPage(
   client: OAuthClientInformationFull,
-  scopes: string[],
+  grant: PendingGrant,
   sealedGrant: string,
 ): string {
   const name = client.client_name ?? client.client_id;
-  const permissions = scopes
+  const permissions = grant.scopes
     .map(
       (scope) =>
         `<li><code>${escapeHtml(scope)}</code> — ${escapeHtml(SCOPE_DESCRIPTIONS[scope] ?? "Access to this server's tools.")}</li>`,
@@ -161,7 +163,7 @@ export function renderConsentPage(
      <ul>${permissions}</ul>
      <dl>
        <dt>Redirects to</dt>
-       <dd><code>${escapeHtml(client.redirect_uris[0] ?? "")}</code></dd>
+       <dd><code>${escapeHtml(grant.redirectUri)}</code></dd>
      </dl>
      <p class="note">Your Facebook token is never given to this client. It receives a token that only this server accepts.</p>
      <form method="post" action="${escapeHtml(CONSENT_PATH)}" class="actions">

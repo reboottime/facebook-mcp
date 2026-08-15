@@ -40,7 +40,10 @@ export function createFacebookLoginRouter(deps: HttpDeps): Router {
     }
 
     const state = randomBytes(24).toString("base64url");
-    const next = safeNextPath(readSingleQueryValue(req, "next"));
+    const next = safeNextPath(
+      readSingleQueryValue(req, "next"),
+      deps.config.publicUrl,
+    );
 
     writeLoginState(deps, res, state, next);
     res.redirect(302, buildLoginDialogUrl(deps.config, app, state));

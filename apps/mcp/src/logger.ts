@@ -8,12 +8,14 @@ const LABELLED_SECRET =
   /\b(access_token|refresh_token|client_secret|fb_exchange_token|appsecret_proof|code_verifier|authorization|password|token)\b(["']?\s*[:=]\s*["']?)([A-Za-z0-9._~+/=-]{6,})/gi;
 const BEARER = /\b(Bearer|OAuth)\s+[A-Za-z0-9._~+/=-]{6,}/gi;
 
+// Bearer first: "Authorization: Bearer EAA…" satisfies both patterns, and the labelled pass would
+// otherwise consume the word "Bearer" as the secret and leave the credential itself in the line.
 export function redactSecrets(text: string): string {
   return text
+    .replace(BEARER, (_match, scheme: string) => `${scheme} [redacted]`)
     .replace(LABELLED_SECRET, (_match, key: string, separator: string) => {
       return `${key}${separator}[redacted]`;
-    })
-    .replace(BEARER, (_match, scheme: string) => `${scheme} [redacted]`);
+    });
 }
 
 export function logInfo(message: string): void {

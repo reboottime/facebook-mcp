@@ -6,7 +6,8 @@ import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/
 
 import { readMetaAccessToken, readPageSelection, writePageSelection } from "../db/users.js";
 import { MetaTokenMissingError } from "../graph/index.js";
-import { logError } from "../logger.js";
+import { logError, logWarn } from "../logger.js";
+import { SealedValueError } from "../secret-box.js";
 import { createUserServer } from "../server.js";
 import { createUserPageDirectory } from "../services/pages.js";
 import { resourceUrl } from "./config.js";
@@ -77,8 +78,30 @@ async function handleMcpRequest(
   await transport.handleRequest(req, res, req.body);
 }
 
+// A token sealed with a previous process's ephemeral key cannot be opened after a restart. For the
+// operator that is the same situation as never having connected — reconnect Facebook — so it must
+// reach them as the tool's own "not connected" message, not as a 500 on /mcp.
+async function readStoredMetaToken(
+  deps: HttpDeps,
+  userId: string,
+): Promise<string | null> {
+  try {
+    return await readMetaAccessToken(deps.db, deps.box, userId);
+  } catch (error) {
+    if (error instanceof SealedValueError) {
+      logWarn(
+        `meta token for user ${userId} could not be decrypted with the current key; treating the account as not connected`,
+      );
+
+      return null;
+    }
+
+    throw error;
+  }
+}
+
 async function buildUserDeps(deps: HttpDeps, userId: string) {
-  const metaAccessToken = await readMetaAccessToken(deps.db, deps.box, userId);
+  const metaAccessToken = await readStoredMetaToken(deps, userId);
   const graph = createUserGraphClient(deps.config, () => {
     if (!metaAccessToken) {
       throw new MetaTokenMissingError(

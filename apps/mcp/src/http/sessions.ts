@@ -5,6 +5,7 @@ import type { HttpDeps } from "./deps.js";
 
 const SESSION_COOKIE = "smcp_session";
 const LOGIN_STATE_COOKIE = "smcp_login";
+const HOST_PREFIX = "__Host-";
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const LOGIN_STATE_TTL_MS = 10 * 60 * 1000;
 
@@ -34,16 +35,24 @@ export function writeSession(
     expiresAt: Date.now() + SESSION_TTL_MS,
   };
 
-  setCookie(deps, res, SESSION_COOKIE, deps.box.seal(JSON.stringify(session)), {
-    maxAgeMs: SESSION_TTL_MS,
-  });
+  setCookie(
+    deps,
+    res,
+    cookieName(deps, SESSION_COOKIE),
+    deps.box.seal(JSON.stringify(session)),
+    { maxAgeMs: SESSION_TTL_MS },
+  );
 }
 
 export function readSession(
   deps: HttpDeps,
   req: Request,
 ): BrowserSession | null {
-  const session = openCookie<BrowserSession>(deps, req, SESSION_COOKIE);
+  const session = openCookie<BrowserSession>(
+    deps,
+    req,
+    cookieName(deps, SESSION_COOKIE),
+  );
 
   if (!session || typeof session.userId !== "string") {
     return null;
@@ -53,7 +62,7 @@ export function readSession(
 }
 
 export function clearSession(deps: HttpDeps, res: Response): void {
-  setCookie(deps, res, SESSION_COOKIE, "", { maxAgeMs: 0 });
+  setCookie(deps, res, cookieName(deps, SESSION_COOKIE), "", { maxAgeMs: 0 });
 }
 
 export function writeLoginState(
@@ -71,7 +80,7 @@ export function writeLoginState(
   setCookie(
     deps,
     res,
-    LOGIN_STATE_COOKIE,
+    cookieName(deps, LOGIN_STATE_COOKIE),
     deps.box.seal(JSON.stringify(payload)),
     { maxAgeMs: LOGIN_STATE_TTL_MS },
   );
@@ -82,9 +91,10 @@ export function takeLoginState(
   req: Request,
   res: Response,
 ): LoginState | null {
-  const payload = openCookie<LoginState>(deps, req, LOGIN_STATE_COOKIE);
+  const name = cookieName(deps, LOGIN_STATE_COOKIE);
+  const payload = openCookie<LoginState>(deps, req, name);
 
-  setCookie(deps, res, LOGIN_STATE_COOKIE, "", { maxAgeMs: 0 });
+  setCookie(deps, res, name, "", { maxAgeMs: 0 });
 
   if (!payload || typeof payload.state !== "string") {
     return null;
@@ -94,13 +104,39 @@ export function takeLoginState(
 }
 
 // Same-origin paths only. Facebook's callback is the one place an attacker could try to steer the
-// post-login redirect, so anything that is not a rooted path is discarded rather than sanitised.
-export function safeNextPath(candidate: string | undefined): string {
-  if (!candidate || !candidate.startsWith("/") || candidate.startsWith("//")) {
+// post-login redirect, so the candidate is resolved against our own origin and only the path
+// survives. Pattern-matching the string cannot be trusted: a URL parser reads `/\evil.example` as
+// protocol-relative exactly like `//evil.example`, which a startsWith("//") check does not catch.
+export function safeNextPath(
+  candidate: string | undefined,
+  publicUrl: URL,
+): string {
+  if (!candidate) {
     return "/";
   }
 
-  return candidate;
+  let resolved: URL;
+
+  try {
+    resolved = new URL(candidate, publicUrl);
+  } catch {
+    return "/";
+  }
+
+  return resolved.origin === publicUrl.origin
+    ? `${resolved.pathname}${resolved.search}`
+    : "/";
+}
+
+// `__Host-` is only legal on a cookie that is Secure, Path=/ and Domain-less, so the name follows
+// the scheme: an https deployment gets the browser-enforced binding, http/localhost development
+// keeps the plain name and behaves exactly as before.
+function cookieName(deps: HttpDeps, base: string): string {
+  return isSecureOrigin(deps) ? `${HOST_PREFIX}${base}` : base;
+}
+
+function isSecureOrigin(deps: HttpDeps): boolean {
+  return deps.config.publicUrl.protocol === "https:";
 }
 
 function setCookie(
@@ -113,7 +149,7 @@ function setCookie(
   res.cookie(name, value, {
     httpOnly: true,
     sameSite: "lax",
-    secure: deps.config.publicUrl.protocol === "https:",
+    secure: isSecureOrigin(deps),
     path: "/",
     maxAge: options.maxAgeMs,
   });
