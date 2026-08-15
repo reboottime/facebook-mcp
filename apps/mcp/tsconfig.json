@@ -6,6 +6,6 @@
     "outDir": "dist",
     "types": ["node", "jest"]
   },
-  "include": ["src", "scripts"],
+  "include": ["src", "scripts", "test", "drizzle.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

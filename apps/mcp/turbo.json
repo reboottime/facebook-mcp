@@ -7,9 +7,27 @@
       "persistent": true,
       "env": ["META_ACCESS_TOKEN", "META_PAGE_ID"]
     },
+    "dev:http": {
+      "cache": false,
+      "persistent": true,
+      "env": [
+        "FB_APP_ID",
+        "FB_APP_SECRET",
+        "PUBLIC_URL",
+        "PORT",
+        "HOST",
+        "ALLOWED_ORIGINS",
+        "DATABASE_URL",
+        "TOKEN_ENCRYPTION_KEY",
+        "FB_DIALOG_BASE_URL",
+        "GRAPH_BASE_URL"
+      ]
+    },
     "test": {
       "dependsOn": ["^build", "build"],
-      "env": ["SOCIAL_MCP_NO_ENV_FILE"]
+      // The zero-env verifications spawn the built entries with a hand-built env, so PATH is read
+      // here to hand the child a working node lookup.
+      "env": ["SOCIAL_MCP_NO_ENV_FILE", "PATH"]
     }
   }
 }
