@@ -12,12 +12,43 @@ Meta's official registration guide:
 
 1. Go to <https://developers.facebook.com/apps> → **Create App** (see the official guide
    above for the current flow).
-2. Use case: pick **Other** → app type **Business**. Business type is required for the
-   Pages + Instagram Graph API access this server uses.
-3. Name it (e.g. "Social MCP") and create. The app starts in **Development Mode** —
-   sufficient for the stdio (phase-1) setup; no App Review is required for accounts that
-   are developers/testers of the app.
+2. Give it a name (e.g. "Social MCP"). If the flow asks for an app type, choose
+   **Business** — it is required for the Pages + Instagram Graph API access this server
+   uses.
+3. The app starts in **Development Mode** — sufficient for the stdio (phase-1) setup; no
+   App Review is required for accounts that are developers/testers of the app.
 4. Note the **App ID** and **App Secret** (Settings → Basic).
+
+### Selecting use cases — pick Content management, NOT Ads
+
+The current creation flow includes a **Use cases** step (a wizard:
+App details → Use cases → Business → Requirements → Overview). The use cases you pick here
+decide which products and permissions the app gets — pick the wrong ones and you add
+Marketing API access you don't need while missing the Page/Instagram content permissions
+you do.
+
+Social MCP publishes and schedules posts and Reels, manages comments, reads Page/post
+Insights, and cross-posts to a linked Instagram account. That is **Content management**.
+It does **not** do ads, lead capture, app-install campaigns, or Threads.
+
+- In **Filter by**, choose **Content management**.
+- Select the **Facebook Page** management use case — the one whose permission list
+  includes `pages_manage_posts`, `pages_read_engagement`, `pages_manage_engagement`,
+  `pages_read_user_content`, `pages_show_list`, and `read_insights`.
+- Select the **Instagram content** use case — the tell is `instagram_content_publish` in
+  its permission list (also `instagram_basic`, `instagram_manage_comments`,
+  `instagram_manage_insights`). It may appear under Content management or under a
+  combined **Instagram** use case.
+- **Do NOT select** any *Ads and monetization* use case (Create & manage ads, Measure ad
+  performance, Capture & manage ad leads, app ads), or **Access the Threads API**. None
+  of them apply to this product — "measure ad performance" is *ad* data, not the Page/post
+  Insights this server reads.
+
+> **You can skip this wizard entirely for the Phase-1 smoke test.** Generating a
+> Development-Mode token for **your own** Page (step 3) does not require completing the
+> use-case / App Review flow — you grant the permissions directly in Graph API Explorer.
+> The use-case selection only becomes load-bearing when you go **Live** so that *other*
+> users can sign in (phase 2, step 6), because App Review is requested per use case.
 
 ## 2. Add Facebook Login (needed for the HTTP transport)
 
