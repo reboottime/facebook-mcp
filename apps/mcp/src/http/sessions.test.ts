@@ -50,28 +50,38 @@ function fakeRequest(cookies: Map<string, string>): Request {
 describe("safeNextPath", () => {
   const publicUrl = new URL("https://mcp.example.com");
 
-  it("accepts a rooted, same-origin path", () => {
-    expect(safeNextPath("/dashboard", publicUrl)).toBe("/dashboard");
+  // The property, not the spelling: whatever comes back must still be same-origin after the
+  // browser re-parses it as a Location header. Asserting exact strings let `/..//evil.example`
+  // through once already — it returned the pathname `//evil.example`, same-origin at parse time
+  // and protocol-relative on re-parse.
+  it.each([
+    ["a protocol-relative path", "//evil.example"],
+    ["an absolute cross-origin URL", "http://evil.example"],
+    ["the slash-backslash bypass form", "/\\evil.example"],
+    ["a dot-segment escape", "/..//evil.example"],
+    ["a repeated dot-segment escape", "/../..//evil.example"],
+    ["a dot-segment escape below a real path", "/x/..//evil.example"],
+    ["a bare-backslash prefix", "\\evil.com"],
+    ["a rooted path", "/dashboard"],
+    ["a rooted path with a query", "/authorize?client_id=abc"],
+    ["no candidate at all", undefined],
+  ])("keeps %s on our own origin once re-parsed", (_label, candidate) => {
+    const next = safeNextPath(candidate, publicUrl);
+
+    expect(new URL(next, publicUrl).origin).toBe(publicUrl.origin);
+  });
+
+  it("preserves a benign destination instead of collapsing it to /", () => {
+    expect(safeNextPath("/dashboard", publicUrl)).toBe(
+      "https://mcp.example.com/dashboard",
+    );
+    expect(safeNextPath("/authorize?client_id=abc", publicUrl)).toBe(
+      "https://mcp.example.com/authorize?client_id=abc",
+    );
   });
 
   it("defaults to / when no candidate is given", () => {
     expect(safeNextPath(undefined, publicUrl)).toBe("/");
-  });
-
-  it("defaults to / for a protocol-relative path", () => {
-    expect(safeNextPath("//evil.com", publicUrl)).toBe("/");
-  });
-
-  it("defaults to / for an absolute URL", () => {
-    expect(safeNextPath("http://evil.com", publicUrl)).toBe("/");
-  });
-
-  it("defaults to / for the slash-backslash bypass form", () => {
-    expect(safeNextPath("/\\evil.example", publicUrl)).toBe("/");
-  });
-
-  it("normalizes a bare-backslash prefix to a same-origin path", () => {
-    expect(safeNextPath("\\evil.com", publicUrl)).toBe("/evil.com");
   });
 });
 

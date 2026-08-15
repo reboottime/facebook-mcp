@@ -20,7 +20,8 @@ export type BrowserSession = {
 export type LoginState = {
   state: string;
   // Where to send the browser once Facebook hands the identity back — normally the /authorize URL
-  // that triggered the login. Always same-origin; an absolute URL here would be an open redirect.
+  // that triggered the login. Only ever written through safeNextPath, so it is an absolute URL on
+  // our own origin; any other origin would be an open redirect.
   next: string;
   expiresAt: number;
 };
@@ -103,10 +104,17 @@ export function takeLoginState(
   return payload.expiresAt > Date.now() ? payload : null;
 }
 
-// Same-origin paths only. Facebook's callback is the one place an attacker could try to steer the
-// post-login redirect, so the candidate is resolved against our own origin and only the path
-// survives. Pattern-matching the string cannot be trusted: a URL parser reads `/\evil.example` as
-// protocol-relative exactly like `//evil.example`, which a startsWith("//") check does not catch.
+// Same-origin destinations only. Facebook's callback is the one place an attacker could try to
+// steer the post-login redirect, so the candidate is resolved against our own origin and anything
+// landing elsewhere collapses to "/". Pattern-matching the string cannot be trusted: a URL parser
+// reads `/\evil.example` as protocol-relative exactly like `//evil.example`, which a
+// startsWith("//") check does not catch.
+//
+// The proven-safe result is returned as an ABSOLUTE URL, not a bare path, because a path has to be
+// re-parsed by the browser against whatever origin it likes: `/..//evil.example` normalizes to the
+// pathname `//evil.example`, same-origin here but protocol-relative — so cross-origin — the moment
+// it is emitted as a Location header on its own. Carrying our origin in the value removes that
+// second parse.
 export function safeNextPath(
   candidate: string | undefined,
   publicUrl: URL,
@@ -123,9 +131,7 @@ export function safeNextPath(
     return "/";
   }
 
-  return resolved.origin === publicUrl.origin
-    ? `${resolved.pathname}${resolved.search}`
-    : "/";
+  return resolved.origin === publicUrl.origin ? resolved.href : "/";
 }
 
 // `__Host-` is only legal on a cookie that is Secure, Path=/ and Domain-less, so the name follows
