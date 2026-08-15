@@ -94,6 +94,7 @@
 | Pre-wireframe scenarios (`.intermediate/discovery/{screen-slug}/scenarios.md`)                    | `scenario-strategist`     |
 | Domain review of scenarios + UX flows + wireframes                                                | `product-domain-reviewer` |
 | WCAG / a11y / keyboard / screen reader review                                                     | `accessibility-expert`    |
+| Security audit — secrets, OAuth/token flows, MCP transport, Graph API scope (report-only)         | `security-auditor`        |
 | Pre-merge review for `apps/**` frontend code                                                      | `frontend-reviewer`       |
 | Commits, conventional commit messages, git workflows                                              | `release-manager`         |
 
