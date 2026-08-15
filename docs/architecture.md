@@ -90,6 +90,42 @@ Instagram account), `cross_post`, plus per-surface Insights and comment tools. O
 one tool per job. See [`product/platform.md`](product/platform.md) for the platform
 primitives and the canonical terms these tools use.
 
+## Extending later: ads and the one-app model
+
+You register **one** Meta app and extend it over time — you do not register a new app per
+capability. This is verified against Meta's official docs:
+
+- The App Dashboard "lets you add and customize the use cases you need for your app," and
+  "if you created an app using an app type, then you may need to add a product to add
+  functionality" — i.e. products (Facebook Login, Marketing API, …) and use cases are
+  added to an existing app after creation.
+  ([App Dashboard](https://developers.facebook.com/docs/development/create-an-app/app-dashboard/))
+- App Review is **per-permission**: "Permissions that have been approved through App
+  Review can be requested from any app user, but unapproved permissions can only be
+  requested from app users who have a [role] on the requesting app."
+  ([App Review](https://developers.facebook.com/docs/app-review))
+
+Concretely, if you later want the MCP client to manage **ads**:
+
+1. **Same Meta app** — add the **Marketing API** product / ads use cases and the ads
+   permissions (`ads_management`, `ads_read`). No new app.
+2. **Independent review** — because approval is per-permission, the ads permissions go
+   through their own App Review while your already-approved content permissions keep
+   working, untouched. And since un-approved permissions still work for users who hold a
+   role on the app, you can build and test ads in **Development Mode** before any review —
+   the same way you test content today.
+3. **Existing users re-consent once** — OAuth grants only the scopes requested at consent
+   time, so the server's Facebook Login would request the ads scopes and signed-in users
+   would re-authorize to grant them. Additive; it does not disturb the content tools.
+
+Ads is also the one case where a **separate MCP server** is a legitimate *choice* (unlike
+Page/Reels/Instagram, which never are): ads run on a different API, act on different
+objects, and spend money. The default is still the same server with a distinct ads tool
+group — it shares the app, login, and per-user token — but you may split it out if you
+want ads to be opt-in/risk-isolated, or a separate Meta app if you want the ads review
+track fully walled off from content. That is a packaging choice, not a platform
+requirement.
+
 ## Components
 
 | Layer | What it does | Key files |
