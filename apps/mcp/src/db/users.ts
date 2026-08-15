@@ -2,9 +2,44 @@ import { randomUUID } from "node:crypto";
 
 import { eq } from "drizzle-orm";
 
-import type { SecretBox } from "../secret-box.js";
+import { logWarn } from "../logger.js";
+import { SealedValueError, type SecretBox } from "../secret-box.js";
 import type { Database } from "./client.js";
 import { metaTokens, pageSelections, users } from "./schema.js";
+
+// A row sealed with a key this process does not have is unrecoverable, so it means exactly what an
+// absent row means: nothing is connected, and the operator has to re-link Facebook. Every caller
+// already handles that answer. Letting the failure escape instead turns the home page into a 500 —
+// the one screen that offers the reconnect button — and the MCP endpoint into an opaque one.
+const warnedStaleRows = new Set<string>();
+
+function openStoredSecret(
+  box: SecretBox,
+  sealed: string,
+  kind: string,
+  userId: string,
+): string | null {
+  try {
+    return box.open(sealed);
+  } catch (error) {
+    if (!(error instanceof SealedValueError)) {
+      throw error;
+    }
+
+    // Once per user per kind: this state repeats on every request until the operator reconnects,
+    // and a line per request would bury everything else in the log.
+    const seen = `${kind}:${userId}`;
+
+    if (!warnedStaleRows.has(seen)) {
+      warnedStaleRows.add(seen);
+      logWarn(
+        `stored ${kind} for user ${userId} could not be decrypted with the current TOKEN_ENCRYPTION_KEY; treating the account as not connected until Facebook is reconnected`,
+      );
+    }
+
+    return null;
+  }
+}
 
 export type UserRecord = {
   id: string;
@@ -100,7 +135,7 @@ export async function readMetaAccessToken(
     .where(eq(metaTokens.userId, userId))
     .limit(1);
 
-  return row ? box.open(row.sealed) : null;
+  return row ? openStoredSecret(box, row.sealed, "Meta token", userId) : null;
 }
 
 export type PageSelectionRecord = {
@@ -128,11 +163,11 @@ export async function readPageSelection(
     return null;
   }
 
-  return {
-    id: row.pageId,
-    name: row.pageName,
-    accessToken: box.open(row.sealed),
-  };
+  const accessToken = openStoredSecret(box, row.sealed, "Page token", userId);
+
+  return accessToken
+    ? { id: row.pageId, name: row.pageName, accessToken }
+    : null;
 }
 
 export async function writePageSelection(

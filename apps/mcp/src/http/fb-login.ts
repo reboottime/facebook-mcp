@@ -2,7 +2,12 @@ import { randomBytes } from "node:crypto";
 
 import express, { type Request, type Response, type Router } from "express";
 
-import { readPageSelection, readUser, upsertUserFromMeta } from "../db/users.js";
+import {
+  readMetaAccessToken,
+  readPageSelection,
+  readUser,
+  upsertUserFromMeta,
+} from "../db/users.js";
 import { logError, logInfo } from "../logger.js";
 import { constantTimeEquals } from "../secret-box.js";
 import type { HttpDeps } from "./deps.js";
@@ -157,12 +162,21 @@ async function renderHome(
   const configured = readAppCredentials(deps.config) !== null;
 
   const identity = session ? await readUser(deps.db, session.userId) : null;
-  const selection = identity
-    ? await readPageSelection(deps.db, deps.box, identity.id)
-    : null;
+  // An identity row on its own is not a working connection: if the stored Meta token cannot be
+  // read back — the state after a restart with no TOKEN_ENCRYPTION_KEY — nothing this server does
+  // will work, so the operator is shown step 1 again rather than a "Connected" page with no way
+  // out of it.
+  const linked =
+    identity !== null &&
+    (await readMetaAccessToken(deps.db, deps.box, identity.id)) !== null;
+  const selection =
+    identity && linked
+      ? await readPageSelection(deps.db, deps.box, identity.id)
+      : null;
 
-  const connect = identity
-    ? `<h1>Connected as ${escapeHtml(identity.name ?? identity.fbUserId)}</h1>
+  const connect =
+    identity && linked
+      ? `<h1>Connected as ${escapeHtml(identity.name ?? identity.fbUserId)}</h1>
        <p class="note">Facebook account linked. Your Meta token is stored encrypted and is only ever used for your own requests.</p>
        <dl>
          <dt>Selected Page</dt>
@@ -171,6 +185,11 @@ async function renderHome(
        <form class="actions" method="post" action="/auth/signout"><button type="submit">Sign out</button></form>`
     : `<h1>Social MCP</h1>
        <p>Manage your Facebook Pages, Reels, and Instagram from an MCP client.</p>
+       ${
+         identity
+           ? `<p class="note">Your stored Facebook token can no longer be read by this server — it was encrypted with a key this process does not have, which happens when it restarts without <code>TOKEN_ENCRYPTION_KEY</code> set. Connect again to restore access.</p>`
+           : ""
+       }
        ${
          configured
            ? `<div class="actions"><a class="button primary" href="/auth/facebook">Connect with Facebook</a></div>`
