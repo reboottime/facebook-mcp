@@ -1,12 +1,21 @@
 import { z } from "zod";
 
 import { GRAPH_API_VERSION } from "../graph/index.js";
+import { readHealth } from "../services/health.js";
 import type { ToolRegistration } from "./context.js";
+import { runTool } from "./result.js";
+import { pageRefSchema } from "./schemas.js";
 
 const outputSchema = {
   serverVersion: z.string(),
   graphApiVersion: z.string(),
   metaAccessToken: z.enum(["configured", "not configured"]),
+  graph: z.enum(["ok", "unreachable", "not checked"]),
+  tokenHolder: z.string().optional(),
+  pagesCount: z.number().optional(),
+  page: pageRefSchema.optional(),
+  instagramLinked: z.boolean().optional(),
+  detail: z.string().optional(),
 };
 
 export const registerHealthTool: ToolRegistration = (server, context) => {
@@ -15,27 +24,23 @@ export const registerHealthTool: ToolRegistration = (server, context) => {
     {
       title: "Server health",
       description:
-        "Reports the Social MCP server version, the pinned Meta Graph API version, and whether a Meta access token is configured.",
+        "Reports whether the Meta access token is configured and working: token holder name, how many Facebook Pages it administers, the Page that Page-scoped tools will target, and whether that Page has a linked Instagram account. Never fails — an unreachable Graph API is reported as a result.",
       outputSchema,
+      annotations: { readOnlyHint: true, openWorldHint: true },
     },
-    () => {
-      const metaAccessToken = context.env.metaAccessToken
-        ? "configured"
-        : "not configured";
+    () =>
+      runTool(async () => {
+        const report = await readHealth(
+          context.env,
+          context.graph,
+          context.pages,
+        );
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: `social-mcp ${context.serverVersion} · Graph API ${GRAPH_API_VERSION} · token: ${metaAccessToken}`,
-          },
-        ],
-        structuredContent: {
+        return {
           serverVersion: context.serverVersion,
           graphApiVersion: GRAPH_API_VERSION,
-          metaAccessToken,
-        },
-      };
-    },
+          ...report,
+        };
+      }),
   );
 };

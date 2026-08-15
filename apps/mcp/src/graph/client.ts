@@ -12,6 +12,8 @@ export type GraphParams = Record<string, string | number | boolean | undefined>;
 export type GraphClient = {
   get: <T>(path: string, params?: GraphParams) => Promise<T>;
   post: <T>(path: string, params?: GraphParams) => Promise<T>;
+  del: <T>(path: string, params?: GraphParams) => Promise<T>;
+  withToken: (token: string) => GraphClient;
 };
 
 type ReadToken = () => string | null;
@@ -20,12 +22,25 @@ export function createGraphClient(readToken: ReadToken): GraphClient {
   return {
     get: (path, params) => request(readToken, "GET", path, params),
     post: (path, params) => request(readToken, "POST", path, params),
+    del: (path, params) => request(readToken, "DELETE", path, params),
+    withToken: (token) => createGraphClient(() => token),
   };
+}
+
+export async function readGraphResponse<T>(response: Response): Promise<T> {
+  const body = await response.text();
+  const payload = parseJson(body, response.status);
+
+  if (!response.ok) {
+    throw toGraphApiError(response.status, payload);
+  }
+
+  return payload as T;
 }
 
 async function request<T>(
   readToken: ReadToken,
-  method: "GET" | "POST",
+  method: "GET" | "POST" | "DELETE",
   path: string,
   params: GraphParams = {},
 ): Promise<T> {
@@ -38,7 +53,7 @@ async function request<T>(
   const url = new URL(`${GRAPH_API_BASE_URL}/${path.replace(/^\/+/, "")}`);
   const entries = definedEntries(params);
 
-  if (method === "GET") {
+  if (method !== "POST") {
     for (const [key, value] of entries) {
       url.searchParams.set(key, value);
     }
@@ -58,14 +73,7 @@ async function request<T>(
       method === "POST" ? new URLSearchParams(entries).toString() : undefined,
   });
 
-  const body = await response.text();
-  const payload = parseJson(body, response.status);
-
-  if (!response.ok) {
-    throw toGraphApiError(response.status, payload);
-  }
-
-  return payload as T;
+  return readGraphResponse<T>(response);
 }
 
 function definedEntries(params: GraphParams): [string, string][] {

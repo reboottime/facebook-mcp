@@ -2,7 +2,12 @@
   "$schema": "https://turborepo.dev/schema.json",
   "ui": "tui",
   "globalDependencies": ["**/.env.*local"],
-  "globalEnv": ["NODE_ENV", "NEON_DATABASE_URL", "META_ACCESS_TOKEN"],
+  "globalEnv": [
+    "NODE_ENV",
+    "NEON_DATABASE_URL",
+    "META_ACCESS_TOKEN",
+    "META_PAGE_ID"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

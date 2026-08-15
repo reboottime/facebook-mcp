@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 
 export type Env = {
   metaAccessToken: string | null;
+  metaPageId: string | null;
 };
 
 // Resolved from the module URL, not cwd: MCP clients spawn the server from arbitrary directories.
@@ -14,6 +15,10 @@ export function readEnv(): Env {
   }
 
   const token = process.env.META_ACCESS_TOKEN?.trim();
+  const pageId = process.env.META_PAGE_ID?.trim();
 
-  return { metaAccessToken: token ? token : null };
+  return {
+    metaAccessToken: token ? token : null,
+    metaPageId: pageId ? pageId : null,
+  };
 }
