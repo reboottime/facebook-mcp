@@ -13,6 +13,7 @@ import {
 } from "../services/insights.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
+import { graphIdSchema } from "./schemas.js";
 
 const inputSchema = {
   target: z
@@ -20,13 +21,12 @@ const inputSchema = {
     .describe(
       'What to measure: "page" for whole-Page metrics, "post" for one Facebook post, "ig_media" for one Instagram post or reel.',
     ),
-  id: z
-    .string()
+  id: graphIdSchema("id")
     .optional()
     .describe(
       'The post or media id to measure, e.g. "102938475610293_9988776655" or "17895695668004550". Required for "post" and "ig_media"; ignored for "page".',
     ),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
   period: z
     .enum(["day", "week", "days_28"])
     .optional()

@@ -3,15 +3,13 @@ import { z } from "zod";
 import { deletePost } from "../services/queue.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { verificationSchema } from "./schemas.js";
+import { graphIdSchema, verificationSchema } from "./schemas.js";
 
 const inputSchema = {
-  post_id: z
-    .string()
-    .describe(
-      'Facebook post id to remove, e.g. "102938475610293_9988776655". Works for both scheduled and already published posts.',
-    ),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  post_id: graphIdSchema("post_id").describe(
+    'Facebook post id to remove, e.g. "102938475610293_9988776655". Works for both scheduled and already published posts.',
+  ),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
 };
 
 const outputSchema = {

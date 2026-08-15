@@ -4,10 +4,10 @@ import { publishFacebookPost } from "../services/publishing.js";
 import { toScheduledPostUnixSeconds } from "../services/scheduling.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { pageRefSchema, verificationSchema } from "./schemas.js";
+import { graphIdSchema, pageRefSchema, verificationSchema } from "./schemas.js";
 
 const inputSchema = {
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
   message: z
     .string()
     .optional()

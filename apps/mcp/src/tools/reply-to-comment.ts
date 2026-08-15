@@ -6,20 +6,22 @@ import {
 } from "../services/comments.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { platformSchema, verificationSchema } from "./schemas.js";
+import {
+  graphIdSchema,
+  platformSchema,
+  verificationSchema,
+} from "./schemas.js";
 
 const inputSchema = {
   platform: platformSchema,
-  comment_id: z
-    .string()
-    .describe(
-      'Id of the comment being replied to, e.g. "9988776655_1122334455" on Facebook or "17895695668004550" on Instagram.',
-    ),
+  comment_id: graphIdSchema("comment_id").describe(
+    'Id of the comment being replied to, e.g. "9988776655_1122334455" on Facebook or "17895695668004550" on Instagram.',
+  ),
   message: z
     .string()
     .min(1)
     .describe('Reply text, e.g. "Thanks for watching — more on Friday!"'),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
 };
 
 const outputSchema = {
