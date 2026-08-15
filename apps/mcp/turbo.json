@@ -1,0 +1,15 @@
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["META_ACCESS_TOKEN", "META_PAGE_ID"]
+    },
+    "test": {
+      "dependsOn": ["^build", "build"],
+      "env": ["SOCIAL_MCP_NO_ENV_FILE"]
+    }
+  }
+}

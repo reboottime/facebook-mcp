@@ -19,6 +19,8 @@
 | Deployment           | Fly.io (scale-to-zero) + Neon Postgres — see [`fly-deployment.md`](fly-deployment.md) |
 | Package Manager      | pnpm                               |
 | Animation            | Framer Motion                      |
+| MCP SDK              | `@modelcontextprotocol/sdk` 1.30.0 |
+| Meta Graph API       | v26.0                              |
 
 ## Architecture Decisions
 
