@@ -4,29 +4,42 @@
   "private": true,
   "type": "module",
   "bin": {
-    "social-mcp": "./dist/index.js"
+    "social-mcp": "./dist/index.js",
+    "social-mcp-http": "./dist/http/main.js"
   },
   "engines": {
     "node": ">=20.12"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
+    "dev:http": "tsx watch src/http/main.ts",
     "build": "tsc -p tsconfig.build.json",
     "check-types": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' jest && pnpm run verify:stdio",
-    "verify:stdio": "tsx scripts/verify-stdio.ts"
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest && pnpm run verify:stdio && pnpm run verify:http",
+    "verify:stdio": "tsx scripts/verify-stdio.ts",
+    "verify:http": "tsx scripts/verify-http.ts"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.5.5",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.6.2",
+    "pg": "^8.23.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
     "@jest/globals": "^30.2.0",
     "@repo/config.eslint": "workspace:*",
     "@repo/config.typescript": "workspace:*",
+    "@types/express": "^5.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^22.15.3",
+    "@types/pg": "^8.21.0",
+    "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.1",
     "jest": "^30.2.0",
     "ts-jest": "^29.4.6",

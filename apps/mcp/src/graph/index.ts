@@ -1,10 +1,12 @@
 export {
+  appSecretProof,
   createGraphClient,
   encodePath,
   readGraphResponse,
   GRAPH_API_BASE_URL,
   GRAPH_API_VERSION,
   type GraphClient,
+  type GraphClientOptions,
   type GraphParams,
 } from "./client.js";
 export {

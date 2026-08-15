@@ -2,8 +2,10 @@ import { describe, expect, it, jest } from "@jest/globals";
 
 import type { Env } from "../env.js";
 import { PageResolutionError } from "../errors.js";
+import { MetaTokenMissingError } from "../graph/index.js";
 import type { GraphClient, GraphPage } from "../graph/index.js";
-import { createPageDirectory } from "./pages.js";
+import { createPageDirectory, createUserPageDirectory } from "./pages.js";
+import type { StoredPageSelection } from "./pages.js";
 
 function fakeGraph(pages: GraphPage[] | (() => Promise<GraphPage[]>)): GraphClient {
   const get = jest.fn(async () => {
@@ -94,5 +96,74 @@ describe("createPageDirectory / resolve", () => {
     await expect(directory.resolve()).rejects.toThrow("Graph outage");
     await expect(directory.resolve()).resolves.toMatchObject({ id: "A" });
     expect(get).toHaveBeenCalledTimes(2);
+  });
+});
+
+const selectionA: StoredPageSelection = {
+  id: "A",
+  name: "Page A",
+  accessToken: "selection-token-a",
+};
+
+describe("createUserPageDirectory / resolve", () => {
+  it("resolves the stored selection when no page id is given", async () => {
+    const directory = createUserPageDirectory({
+      graph: fakeGraph([pageA]),
+      readSelection: () => Promise.resolve(selectionA),
+    });
+
+    const resolved = await directory.resolve();
+
+    expect(resolved).toMatchObject({
+      id: "A",
+      name: "Page A",
+      accessToken: "selection-token-a",
+    });
+  });
+
+  it("resolves the stored selection when the given page id matches it", async () => {
+    const directory = createUserPageDirectory({
+      graph: fakeGraph([pageA, pageB]),
+      readSelection: () => Promise.resolve(selectionA),
+    });
+
+    const resolved = await directory.resolve("A");
+
+    expect(resolved.accessToken).toBe("selection-token-a");
+  });
+
+  it("falls through to the live directory when the given page id does not match the stored selection", async () => {
+    const directory = createUserPageDirectory({
+      graph: fakeGraph([pageA, pageB]),
+      readSelection: () => Promise.resolve(selectionA),
+    });
+
+    const resolved = await directory.resolve("B");
+
+    expect(resolved).toMatchObject({ id: "B", accessToken: "token-b" });
+  });
+
+  it("throws MetaTokenMissingError instead of falling back to any shared token when a Page has none", async () => {
+    const pageWithoutToken: GraphPage = { id: "C", name: "Page C" };
+    const directory = createUserPageDirectory({
+      graph: fakeGraph([pageWithoutToken]),
+      readSelection: () => Promise.resolve(null),
+    });
+
+    await expect(directory.resolve()).rejects.toThrow(MetaTokenMissingError);
+  });
+
+  it("readSelectedPageId reflects the stored selection, or null when none is set", async () => {
+    const withSelection = createUserPageDirectory({
+      graph: fakeGraph([pageA]),
+      readSelection: () => Promise.resolve(selectionA),
+    });
+    const withoutSelection = createUserPageDirectory({
+      graph: fakeGraph([pageA]),
+      readSelection: () => Promise.resolve(null),
+    });
+
+    expect(await withSelection.readSelectedPageId()).toBe("A");
+    expect(await withoutSelection.readSelectedPageId()).toBeNull();
   });
 });

@@ -1,8 +1,4 @@
-import type { Env } from "../env.js";
-import {
-  readTokenHolderName,
-  type GraphClient,
-} from "../graph/index.js";
+import { readTokenHolderName, type GraphClient } from "../graph/index.js";
 import type { PageDirectory } from "./pages.js";
 
 export type HealthReport = {
@@ -15,22 +11,24 @@ export type HealthReport = {
   detail?: string;
 };
 
+export type HealthInput = {
+  metaToken: string | null;
+  graph: GraphClient;
+  pages: PageDirectory;
+};
+
 // Health never fails: an unreachable Graph is itself the answer the operator is asking for.
-export async function readHealth(
-  env: Env,
-  graph: GraphClient,
-  pages: PageDirectory,
-): Promise<HealthReport> {
-  if (!env.metaAccessToken) {
+export async function readHealth(input: HealthInput): Promise<HealthReport> {
+  if (!input.metaToken) {
     return { metaAccessToken: "not configured", graph: "not checked" };
   }
 
   try {
     const [tokenHolder, managed] = await Promise.all([
-      readTokenHolderName(graph),
-      pages.list(),
+      readTokenHolderName(input.graph),
+      input.pages.list(),
     ]);
-    const resolved = await pages.resolve().catch(() => undefined);
+    const resolved = await input.pages.resolve().catch(() => undefined);
 
     return {
       metaAccessToken: "configured",

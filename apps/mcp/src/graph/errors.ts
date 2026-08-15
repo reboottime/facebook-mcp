@@ -45,10 +45,12 @@ export class GraphApiError extends Error {
 }
 
 export class MetaTokenMissingError extends Error {
-  constructor() {
-    super(
-      "Meta access token is not configured. Add META_ACCESS_TOKEN to apps/mcp/.env.local and restart the server.",
-    );
+  // The default names the stdio remedy. Over HTTP the operator has no .env.local to edit, so the
+  // caller passes the remedy that actually applies to them.
+  constructor(
+    message = "Meta access token is not configured. Add META_ACCESS_TOKEN to apps/mcp/.env.local and restart the server.",
+  ) {
+    super(message);
     this.name = "MetaTokenMissingError";
   }
 }
