@@ -1,3 +1,5 @@
+import { createHmac } from "node:crypto";
+
 import {
   InvalidGraphPathError,
   MetaTokenMissingError,
@@ -17,15 +19,33 @@ export type GraphClient = {
   withToken: (token: string) => GraphClient;
 };
 
+export type GraphClientOptions = {
+  // Pinned Graph host + version. Overridden only by the integration harness, which stands up an
+  // in-process fake Meta; nothing in the shipped entries passes it.
+  baseUrl?: string;
+  // Meta App Dashboard → Security → "Require App Secret" makes this mandatory. Absent until the
+  // operator configures FB_APP_SECRET, and the calls still work without it.
+  appSecret?: string | null;
+};
+
 type ReadToken = () => string | null;
 
-export function createGraphClient(readToken: ReadToken): GraphClient {
+export function createGraphClient(
+  readToken: ReadToken,
+  options: GraphClientOptions = {},
+): GraphClient {
   return {
-    get: (path, params) => request(readToken, "GET", path, params),
-    post: (path, params) => request(readToken, "POST", path, params),
-    del: (path, params) => request(readToken, "DELETE", path, params),
-    withToken: (token) => createGraphClient(() => token),
+    get: (path, params) => request(readToken, options, "GET", path, params),
+    post: (path, params) => request(readToken, options, "POST", path, params),
+    del: (path, params) => request(readToken, options, "DELETE", path, params),
+    withToken: (token) => createGraphClient(() => token, options),
   };
+}
+
+// "The app secret proof is a sha256 hash of your access token, using your app secret as the key."
+// — developers.facebook.com/docs/graph-api/securing-requests
+export function appSecretProof(accessToken: string, appSecret: string): string {
+  return createHmac("sha256", appSecret).update(accessToken).digest("hex");
 }
 
 export async function readGraphResponse<T>(response: Response): Promise<T> {
@@ -41,6 +61,7 @@ export async function readGraphResponse<T>(response: Response): Promise<T> {
 
 async function request<T>(
   readToken: ReadToken,
+  options: GraphClientOptions,
   method: "GET" | "POST" | "DELETE",
   path: string,
   params: GraphParams = {},
@@ -51,8 +72,15 @@ async function request<T>(
     throw new MetaTokenMissingError();
   }
 
-  const url = new URL(`${GRAPH_API_BASE_URL}/${encodePath(path)}`);
-  const entries = definedEntries(params);
+  const url = new URL(
+    `${options.baseUrl ?? GRAPH_API_BASE_URL}/${encodePath(path)}`,
+  );
+  const entries = definedEntries({
+    ...params,
+    appsecret_proof: options.appSecret
+      ? appSecretProof(token, options.appSecret)
+      : undefined,
+  });
 
   if (method !== "POST") {
     for (const [key, value] of entries) {

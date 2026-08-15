@@ -9,21 +9,30 @@ export type Env = {
 // Resolved from the module URL, not cwd: MCP clients spawn the server from arbitrary directories.
 const ENV_FILE_PATH = fileURLToPath(new URL("../.env.local", import.meta.url));
 
-export function readEnv(): Env {
-  // Harness-only flag, deliberately absent from .env.example: the zero-env verification spawns
-  // the built server to prove it boots unconfigured, and without this the child would still read
-  // the operator's real .env.local and run its smoke calls against live accounts.
-  const envFileDisabled = process.env.SOCIAL_MCP_NO_ENV_FILE === "1";
-
-  if (!envFileDisabled && existsSync(ENV_FILE_PATH)) {
-    process.loadEnvFile(ENV_FILE_PATH);
+// Harness-only flag, deliberately absent from .env.example: the zero-env verification and every
+// HTTP integration test spawn the server unconfigured to prove it boots, and without this the
+// child would still read the operator's real .env.local and run against live accounts.
+export function loadLocalEnvFile(): void {
+  if (process.env.SOCIAL_MCP_NO_ENV_FILE === "1") {
+    return;
   }
 
-  const token = process.env.META_ACCESS_TOKEN?.trim();
-  const pageId = process.env.META_PAGE_ID?.trim();
+  if (existsSync(ENV_FILE_PATH)) {
+    process.loadEnvFile(ENV_FILE_PATH);
+  }
+}
+
+export function readEnv(): Env {
+  loadLocalEnvFile();
 
   return {
-    metaAccessToken: token ? token : null,
-    metaPageId: pageId ? pageId : null,
+    metaAccessToken: readOptional("META_ACCESS_TOKEN"),
+    metaPageId: readOptional("META_PAGE_ID"),
   };
+}
+
+export function readOptional(name: string): string | null {
+  const value = process.env[name]?.trim();
+
+  return value ? value : null;
 }
