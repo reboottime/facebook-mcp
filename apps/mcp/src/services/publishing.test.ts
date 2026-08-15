@@ -79,7 +79,10 @@ describe("publishFacebookReel", () => {
   function pageForReel(readReelResult: Record<string, unknown>) {
     const post = jest
       .fn<AsyncFn>()
-      .mockResolvedValueOnce({ video_id: "video-1", upload_url: "https://upload.example/x" })
+      .mockResolvedValueOnce({
+        video_id: "video-1",
+        upload_url: "https://rupload.facebook.com/video-upload/video-1",
+      })
       .mockResolvedValueOnce({ success: true });
     const get = jest.fn<AsyncFn>().mockResolvedValue(readReelResult);
 
