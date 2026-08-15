@@ -1,5 +1,6 @@
 export {
   createGraphClient,
+  encodePath,
   readGraphResponse,
   GRAPH_API_BASE_URL,
   GRAPH_API_VERSION,
@@ -8,6 +9,8 @@ export {
 } from "./client.js";
 export {
   GraphApiError,
+  GraphUploadTargetError,
+  InvalidGraphPathError,
   MetaTokenMissingError,
   type GraphApiErrorDetails,
 } from "./errors.js";
@@ -32,6 +35,7 @@ export {
   type PostWithAttachments,
 } from "./posts.js";
 export {
+  assertMetaUploadHost,
   finishReelUpload,
   readReel,
   startReelUpload,

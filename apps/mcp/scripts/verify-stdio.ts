@@ -53,11 +53,13 @@ const SMOKE_CALLS: { name: string; arguments: Record<string, unknown> }[] = [
   },
 ];
 
-// Empty env: proves the built server boots and answers with no configuration at all.
+// Proves the built server boots and answers with no configuration at all. SOCIAL_MCP_NO_ENV_FILE
+// is the only entry: it stops the child from loading apps/mcp/.env.local, so a real operator token
+// on disk can never turn these smoke calls into live publishes.
 const transport = new StdioClientTransport({
   command: process.execPath,
   args: [serverEntry],
-  env: {},
+  env: { SOCIAL_MCP_NO_ENV_FILE: "1" },
   stderr: "inherit",
 });
 

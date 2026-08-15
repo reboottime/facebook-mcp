@@ -1,4 +1,5 @@
 import {
+  InvalidGraphPathError,
   MetaTokenMissingError,
   toGraphApiError,
   GraphApiError,
@@ -50,7 +51,7 @@ async function request<T>(
     throw new MetaTokenMissingError();
   }
 
-  const url = new URL(`${GRAPH_API_BASE_URL}/${path.replace(/^\/+/, "")}`);
+  const url = new URL(`${GRAPH_API_BASE_URL}/${encodePath(path)}`);
   const entries = definedEntries(params);
 
   if (method !== "POST") {
@@ -74,6 +75,30 @@ async function request<T>(
   });
 
   return readGraphResponse<T>(response);
+}
+
+// Every path is built from a fixed edge name plus ids that originate in tool input, so each
+// segment is encoded individually: `?` and `#` inside an id stay inert data instead of re-steering
+// the request at a different query or truncating the edge.
+//
+// Dot segments are rejected rather than encoded. `encodeURIComponent` leaves `.` and `..` untouched,
+// and the WHATWG URL parser decodes `%2E` before resolving, so neither form survives as data —
+// `v26.0/../me` collapses to `/me` and escapes the pinned API version. No Graph id is ever a dot
+// segment, so refusing is exact.
+export function encodePath(path: string): string {
+  return path
+    .replace(/^\/+/, "")
+    .split("/")
+    .map((segment) => {
+      if (segment === "." || segment === "..") {
+        throw new InvalidGraphPathError(
+          `"${segment}" is not a valid Graph object id. Pass the id of the post, media, comment, or Page itself.`,
+        );
+      }
+
+      return encodeURIComponent(segment);
+    })
+    .join("/");
 }
 
 function definedEntries(params: GraphParams): [string, string][] {

@@ -53,6 +53,24 @@ export class MetaTokenMissingError extends Error {
   }
 }
 
+// Raised before a request leaves the process, when Meta hands back a destination we will not
+// send a token to. Distinct from GraphApiError because nothing was ever called: there is no HTTP
+// status, no Graph code, and nothing was uploaded.
+export class GraphUploadTargetError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "GraphUploadTargetError";
+  }
+}
+
+// Raised when an id would steer the request somewhere other than the object it names.
+export class InvalidGraphPathError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InvalidGraphPathError";
+  }
+}
+
 export function toGraphApiError(
   status: number,
   payload: unknown,

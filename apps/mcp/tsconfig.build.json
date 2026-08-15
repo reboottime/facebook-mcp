@@ -8,5 +8,8 @@
     "rootDir": "src",
     "outDir": "dist"
   },
-  "include": ["src"]
+  "include": ["src"],
+  // dist is the published bin artifact and jest's roots include it: without this, tests ship to
+  // users and every suite runs twice, once from src and once from the compiled copy.
+  "exclude": ["**/*.test.ts"]
 }

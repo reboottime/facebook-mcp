@@ -1,12 +1,18 @@
 import type { Env } from "../env.js";
 import { PageResolutionError } from "../errors.js";
 import {
+  GraphApiError,
   listManagedPages,
   MetaTokenMissingError,
   type GraphClient,
   type GraphInstagramAccount,
+  type GraphParams,
   type GraphPage,
 } from "../graph/index.js";
+
+// Graph's expired/invalid-token code. Page access tokens are minted from the user token and die
+// with it, so a page-scoped 190 means the whole cached directory is stale.
+const EXPIRED_TOKEN_CODE = 190;
 
 export type ResolvedPage = {
   id: string;
@@ -38,9 +44,15 @@ export function createPageDirectory(
   // next call retries instead of pinning a transient Graph outage.
   let cached: Promise<ResolvedPage[]> | null = null;
 
+  const invalidate = (): void => {
+    cached = null;
+  };
+
   const list = (): Promise<ResolvedPage[]> => {
     cached ??= listManagedPages(graph)
-      .then((pages) => pages.map((page) => toResolvedPage(page, graph, env)))
+      .then((pages) =>
+        pages.map((page) => toResolvedPage(page, graph, env, invalidate)),
+      )
       .catch((error: unknown) => {
         cached = null;
         throw error;
@@ -102,6 +114,7 @@ function toResolvedPage(
   page: GraphPage,
   graph: GraphClient,
   env: Env,
+  invalidate: () => void,
 ): ResolvedPage {
   // A Page omits access_token when the token holder's role does not expose one; the user
   // token still satisfies read edges and fails write edges with a permission error rather
@@ -112,13 +125,46 @@ function toResolvedPage(
     throw new MetaTokenMissingError();
   }
 
+  const base = page.access_token ? graph.withToken(page.access_token) : graph;
+
   return {
     id: page.id,
     name: page.name,
     category: page.category,
     instagram: page.instagram_business_account,
-    client: page.access_token ? graph.withToken(page.access_token) : graph,
+    client: withTokenInvalidation(base, invalidate),
     accessToken,
+  };
+}
+
+// The cached directory pins a page access token for the process lifetime. Without this, once that
+// token expires every later call keeps replaying the dead token and the operator has to restart
+// the server; dropping the cache on a 190 makes the next call re-resolve fresh page tokens.
+function withTokenInvalidation(
+  client: GraphClient,
+  invalidate: () => void,
+): GraphClient {
+  const guard = async <T>(run: () => Promise<T>): Promise<T> => {
+    try {
+      return await run();
+    } catch (error) {
+      if (error instanceof GraphApiError && error.code === EXPIRED_TOKEN_CODE) {
+        invalidate();
+      }
+
+      throw error;
+    }
+  };
+
+  return {
+    get: <T>(path: string, params?: GraphParams) =>
+      guard(() => client.get<T>(path, params)),
+    post: <T>(path: string, params?: GraphParams) =>
+      guard(() => client.post<T>(path, params)),
+    del: <T>(path: string, params?: GraphParams) =>
+      guard(() => client.del<T>(path, params)),
+    withToken: (token: string) =>
+      withTokenInvalidation(client.withToken(token), invalidate),
   };
 }
 

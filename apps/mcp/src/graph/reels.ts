@@ -1,4 +1,5 @@
 import { readGraphResponse, type GraphClient } from "./client.js";
+import { GraphUploadTargetError } from "./errors.js";
 
 export type ReelUploadSession = {
   video_id: string;
@@ -44,6 +45,8 @@ export async function uploadReelFromUrl(
   pageAccessToken: string,
   videoUrl: string,
 ): Promise<void> {
+  assertMetaUploadHost(uploadUrl);
+
   const response = await fetch(uploadUrl, {
     method: "POST",
     headers: {
@@ -54,6 +57,33 @@ export async function uploadReelFromUrl(
   });
 
   await readGraphResponse<unknown>(response);
+}
+
+// upload_url comes back from Meta rather than from our code, and the very next line puts a live
+// page access token in an Authorization header pointed at it. Anything that redirected that value
+// off Meta's own hosts — a compromised or spoofed start-phase response — would hand the token away,
+// so the destination is checked before the token is attached.
+export function assertMetaUploadHost(uploadUrl: string): URL {
+  let parsed: URL;
+
+  try {
+    parsed = new URL(uploadUrl);
+  } catch {
+    throw new GraphUploadTargetError(
+      "Meta returned an unusable reel upload URL, so nothing was uploaded and no token was sent. Retry the reel, and check the Graph API status if it repeats.",
+    );
+  }
+
+  const host = parsed.hostname.toLowerCase();
+  const isMetaHost = host === "facebook.com" || host.endsWith(".facebook.com");
+
+  if (parsed.protocol !== "https:" || !isMetaHost) {
+    throw new GraphUploadTargetError(
+      `Meta returned a reel upload URL pointing at ${parsed.protocol}//${parsed.host}, which is not an https facebook.com host. Nothing was uploaded and no token was sent. Retry the reel, and report it if it repeats.`,
+    );
+  }
+
+  return parsed;
 }
 
 export async function finishReelUpload(

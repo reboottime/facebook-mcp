@@ -12,11 +12,13 @@ export function assertHostedMediaUrl(value: string, field: string): string {
     );
   }
 
-  if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+  if (parsed.protocol !== "https:") {
     throw new InvalidToolInputError(
       `${field} must be a publicly reachable https URL. Local file paths are not supported — host the file and pass its URL.`,
     );
   }
 
+  // Serializing the parsed URL rather than echoing the input percent-encodes control characters,
+  // so a CRLF in a video_url cannot forge extra headers on the reel upload request.
   return parsed.toString();
 }

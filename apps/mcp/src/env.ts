@@ -10,7 +10,12 @@ export type Env = {
 const ENV_FILE_PATH = fileURLToPath(new URL("../.env.local", import.meta.url));
 
 export function readEnv(): Env {
-  if (existsSync(ENV_FILE_PATH)) {
+  // Harness-only flag, deliberately absent from .env.example: the zero-env verification spawns
+  // the built server to prove it boots unconfigured, and without this the child would still read
+  // the operator's real .env.local and run its smoke calls against live accounts.
+  const envFileDisabled = process.env.SOCIAL_MCP_NO_ENV_FILE === "1";
+
+  if (!envFileDisabled && existsSync(ENV_FILE_PATH)) {
     process.loadEnvFile(ENV_FILE_PATH);
   }
 
