@@ -1,0 +1,56 @@
+/* =============================================================================
+ * Drawer (vaul) — motion token override.
+ *
+ * Vaul ships its own style.css with `[data-vaul-drawer]` (specificity [0,1,0])
+ * and `[data-vaul-overlay][data-vaul-snap-points='false']` ([0,2,0]) hard-coded
+ * to 0.5s / cubic-bezier(0.32,0.72,0,1). Those values bypass the Swift cascade
+ * established in primitive.css (--duration-base=220ms enter / --duration-instant=80ms exit).
+ *
+ * Override strategy — extra attribute selector wins cleanly, no !important needed:
+ *   Panel base:  [data-vaul-drawer][data-vaul-no-drag]          → [0,2,0] beats [0,1,0]
+ *   Panel state: [data-vaul-drawer][data-vaul-no-drag][data-state='closed'] → [0,3,0] beats [0,2,0]
+ *   Overlay base:  [data-vaul-overlay][data-vaul-snap-points='false'][data-slot='drawer-overlay'] → [0,3,0] beats [0,2,0]
+ *   Overlay state: [data-vaul-overlay][data-state='closed'][data-slot='drawer-overlay']           → [0,3,0] beats [0,2,0]
+ *
+ * data-vaul-no-drag is set on every DrawerPrimitive.Content in drawer.tsx.
+ * data-slot="drawer-overlay" is set on every DrawerPrimitive.Overlay in drawer.tsx.
+ *
+ * Owned by drawer.tsx — keep in lockstep with that component.
+ * ============================================================================= */
+
+/* ── Drawer panel — enter (220ms emphasized) ─────────────────────────────── */
+[data-vaul-drawer][data-vaul-no-drag] {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-natural);
+}
+
+/* ── Drawer panel — exit (80ms accelerated / Swift dismissal) ────────────── */
+[data-vaul-drawer][data-vaul-no-drag][data-state='closed'] {
+  animation-duration: var(--duration-instant);
+  animation-timing-function: var(--ease-in-accelerated);
+}
+
+/* ── Overlay — enter (220ms emphasized) ─────────────────────────────────── */
+[data-vaul-overlay][data-vaul-snap-points='false'][data-slot='drawer-overlay'] {
+  animation-duration: var(--duration-base);
+  animation-timing-function: var(--ease-out-emphasized);
+}
+
+/* ── Overlay — exit (80ms accelerated / Swift dismissal) ─────────────────── */
+[data-vaul-overlay][data-state='closed'][data-slot='drawer-overlay'] {
+  animation-duration: var(--duration-instant);
+  animation-timing-function: var(--ease-in-accelerated);
+}
+
+/* ── Reduced motion — collapse animation duration to 0ms ─────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer][data-vaul-no-drag],
+  [data-vaul-drawer][data-vaul-no-drag][data-state='closed'] {
+    animation-duration: 0ms;
+  }
+
+  [data-vaul-overlay][data-vaul-snap-points='false'][data-slot='drawer-overlay'],
+  [data-vaul-overlay][data-state='closed'][data-slot='drawer-overlay'] {
+    animation-duration: 0ms;
+  }
+}

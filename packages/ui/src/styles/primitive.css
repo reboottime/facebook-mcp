@@ -1,0 +1,380 @@
+/* =============================================================================
+ * Primitive tokens — raw scalar/positional values with no semantic role.
+ * Names describe what a value IS (a number, a hue ramp step, a curve, a size).
+ * No var() references to semantic roles; values are literal or compose other primitives.
+ *
+ * Dual-layout pattern (migrated sections): literal values live on :root here;
+ * @theme inline { --x: var(--x) } in theme.css passes them through to Tailwind
+ * utility generation without moving the value off :root (required by motion
+ * composites + prefers-reduced-motion overrides in theme.css).
+ *
+ * Typography (@theme {}) is excluded from the migration — it does not have any
+ * :root runtime consumers, so plain @theme {} is correct there.
+ * ============================================================================= */
+
+/* ─── Color palette ──────────────────────────────────────────────────────────
+ * Theme-agnostic raw values, named by hue + step. Consumed only by theme.css semantic roles.
+ * --color-*: initial in @theme wipes Tailwind's default white utility, so use --white. */
+:root {
+  --neutral-950: #09090b;   /* Listo near-black — replaces old #1c2024 */
+  --neutral-50:  #F8FAFB;
+  --white:       #FFFFFF;
+
+  /* Brand — gold retired (no usage; logo/mark uses orange).
+   * Retained as a commented fallback in case a Storybook story references it. */
+  /* --gold: #f7b717; */
+
+  /* Ink — OKLCH gray ramp steps mapped to semantic text tiers.
+   * Source: Listo v2 gray ramp (--v2-gray-*) + semantic assignments from .light / .dark.
+   *
+   * Light assignments:
+   *   ink-900 → foreground       = v2-gray-4  (~14% L)
+   *   ink-800 → muted-foreground = v2-gray-40 (~42% L, bumped from ~48% for ~6:1 contrast vs --surface-bg-light, matches Primer muted philosophy)
+   *   ink-700 → meta-foreground  = v2-gray-52 (~58% L)
+   *   ink-400 → text-disabled    = v2-gray-64 (~69% L)
+   *
+   * Dark assignments (reversed — light text on dark bg).
+   * Even taper 100/81/60/39 mirrors light's 20/42/58/69 cadence; v2-gray-76's
+   * ~80% L collapsed against ink-100's ~81%, so ink-200 is lifted off the v2
+   * ramp to keep a real 3-tier hierarchy under fg.
+   *   ink-50  → foreground       = v2-gray-100 (white)         ~100% L
+   *   ink-100 → muted-foreground = gray-200 ref (#c6c6c6)      ~81%  L
+   *   ink-200 → meta-foreground  = neutral-warm (off-ramp)     ~60%  L
+   *   ink-500 → text-disabled    = v2-gray-30                  ~39%  L */
+  --ink-900: oklch(.20 .004 285.823);    /* v2-gray-4  — foreground light    ↔ ink-50 dark  */
+  --ink-50:  #CECFD2;                    /* ADS DarkNeutral1000 · color.text (dark)          — foreground dark     ↔ ink-900 light — was oklch(1 0 0), Atlassian retheme 2026-07-23 */
+  --ink-800: oklch(.42 .035 284.997);    /* v2-gray-40 — muted-fg light      ↔ ink-100 dark  */
+  --ink-100: #A9ABAF;                    /* ADS DarkNeutral800 · color.text.subtle (dark)    — muted-fg dark ↔ ink-800 light — was #c6c6c6, Atlassian retheme 2026-07-23 */
+  --ink-700: oklch(.579 .041 285.042);   /* v2-gray-52 — meta-fg light       ↔ ink-200 dark  */
+  --ink-200: #96999E;                    /* ADS DarkNeutral700 · color.text.subtlest (dark)  — meta-fg dark ↔ ink-700 light — was oklch(.60 .020 285.946), Atlassian retheme 2026-07-23 */
+  --ink-600: oklch(.654 .032 285.468);   /* v2-gray-60 — reserved            ↔ ink-300 dark  */
+  --ink-300: oklch(.709 .027 285.679);   /* v2-gray-66 — reserved            ↔ ink-600 light */
+  --ink-400: #B7B9BE;                    /* ADS Neutral400                                   — text-disabled light ↔ ink-500 dark — was oklch(.690 .029 285.612), Atlassian retheme 2026-07-23 */
+  --ink-500: #63666B;                    /* ADS DarkNeutral500                               — text-disabled dark  ↔ ink-400 light — was oklch(.393 .029 285.012), Atlassian retheme 2026-07-23 */
+
+  /* Surfaces — 3-tier DS system (light / dark pairs).
+   *
+   * Tier order (dark mode, darkest → lightest):
+   *   muted #111111 → background #1A1A19 → card #1A1A1A
+   *
+   * Metaphor is symmetric across modes:
+   *   Cards are framed regions of the workspace in BOTH light and dark. The surface
+   *   delta between card and workspace is intentionally near-zero — the lean system
+   *   relies on border + shadow for card identity, not tonal contrast.
+   *
+   *   Light: bg-card (#FFFFFF) == bg-background (#FFFFFF) — identical surface.
+   *          Cards are distinguished by border + shadow only.
+   *   Dark:  bg-card (#1A1A1A) ≈ bg-background (#1A1A19) — 1-unit blue delta,
+   *          perceptually identical. Cards distinguished by border + shadow only.
+   *
+   *   background  = workspace base (brightest reading surface in dark; pure white in light)
+   *   card        = framed workspace region — same surface as background, semantically
+   *                 distinct so consumers can theme if needed. Default: near-zero delta.
+   *   muted       = sunken strip (deepest, used for table headers / code blocks)
+   *   popover     = DARK ONLY exception: floating surfaces (popovers, dropdowns, dialogs,
+   *                 focused form-field highlight, control-raised bg) use a slightly recessed
+   *                 value that reads as a lift when portaled above page content with
+   *                 shadow-popover. Light popovers alias card-light — no separate primitive.
+   *
+   * Chrome (sidebar/topbar) uses app-local tokens; not part of DS. */
+  --surface-bg-light:        #FFFFFF;
+  --surface-bg-dark:         #18191A;   /* ADS elevation.surface.sunken (dark) — was #1A1A19, Atlassian retheme 2026-07-23 */
+  --surface-card-light:      #FFFFFF;
+  --surface-card-dark:       #1F1F21;   /* ADS elevation.surface (dark) · DarkNeutral100 — framed workspace region, border+shadow carry identity — was #1A1A1A, Atlassian retheme 2026-07-23 */
+  --surface-popover-dark:    #2B2C2F;   /* ADS elevation.surface.overlay (dark) — floating surfaces only: popovers, dropdowns, form-field lift — was #131313, Atlassian retheme 2026-07-23 */
+  --surface-muted-light:     #F0F1F2;   /* ADS accent.gray.subtlest · Neutral200 — was #F0F0EE, Atlassian retheme 2026-07-23 */
+  --surface-muted-dark:      #303134;   /* ADS accent.gray.subtlest (dark) — was #111111, Atlassian retheme 2026-07-23 */
+  --surface-secondary-light: #DDDEE1;   /* ADS accent.gray.subtler · Neutral300 — was #EEEDE9, Atlassian retheme 2026-07-23 */
+  --surface-secondary-dark:  #242528;   /* ADS elevation.surface.raised (dark) — was #262626, Atlassian retheme 2026-07-23 */
+
+  /* Orange — brand action hue.
+   * NAME HISTORICAL — Atlassian Design System retheme (2026-07-23, @atlaskit/tokens@16.3.0)
+   * repoints this ramp to ADS Blue (brand.bold family). Values below now hold Blue700/800/850/400/300;
+   * "orange" no longer describes the hue. Rename filed as follow-up, not bundled with this value swap
+   * — see packages/ui/index.md primitive-rename note. */
+  --orange-900: #144794;   /* brand.bold.pressed  · Blue850  — light pressed/active — was #9b4212 */
+  --orange-800: #1868DB;   /* brand.bold          · Blue700  — light primary fill   — was #c95618 */
+  --orange-700: #1558BC;   /* brand.bold.hovered  · Blue800  — light primary-hover  — was #d96520 */
+  --orange-500: #669DF1;   /* brand.bold (dark)   · Blue400  — dark primary fill    — was #f06128 */
+  --orange-400: #8FB8F6;   /* .hovered (dark)     · Blue300  — dark primary-hover   — was #f27a4a */
+
+  /* Scored (green) — success.
+   * Atlassian retheme 2026-07-23: ADS color.text.success — the TEXT step, not the icon step,
+   * because this primitive backs both --color-state-scored (dot/fill) and -text (chip label)
+   * and only the text step clears 4.5:1 on its own tint. */
+  --scored-600: #4C6B1F;   /* color.text.success       · Lime800 — light — was #1ba673 */
+  --scored-400: #B3DF72;   /* color.text.success (dark)· Lime300 — dark  — was #1ABE5F */
+
+  /* Running (blue) — in-progress.
+   * Atlassian retheme 2026-07-23: ADS color.text.information (text step, see scored note above). */
+  --running-600: #1558BC;   /* color.text.information    · Blue800 — light — was #3772cf */
+  --running-400: #8FB8F6;   /* .information (dark)       · Blue300 — dark  — was #33A1FF */
+
+  /* Errored (red) — failure; shared with destructive.
+   * Atlassian retheme 2026-07-23: ADS color.text.danger (text step, see scored note above). */
+  --errored-600: #AE2E24;   /* color.text.danger        · Red800 — light — was #d45656 */
+  --errored-400: #FD9891;   /* color.text.danger (dark) · Red300 — dark  — was #F47474 */
+
+  /* Warning (amber) — flagged non-fatal.
+   * Atlassian retheme 2026-07-23: ADS color.text.warning (text step, see scored note above). */
+  --warning-600: #9E4C00;   /* color.text.warning        · Orange800 — light — was #c37d0d */
+  --warning-400: #FBC828;   /* color.text.warning (dark) · Orange300 — dark  — was #F9B23B */
+
+  /* Border — RGB channel seeds for alpha-based borders.
+   * Light: rgba(9,9,11,...) — matches Listo's shadow stack base color (unchanged).
+   * Dark: ADS DarkNeutral300A rgb, alpha retuned in theme.css. */
+  --border-seed-light: 9 9 11;
+  --border-seed-dark:  227 228 242;   /* rgb of ADS DarkNeutral300A #E3E4F2 — was 255 255 255, Atlassian retheme 2026-07-23 */
+
+  /* Ledger — DS light-mode default primitive block. NAMES ARE HISTORICAL as of
+   * the Atlassian Design System retheme (2026-07-23, @atlaskit/tokens@16.3.0):
+   * --ledger-green-* now hold ADS Blue, --ledger-cream is a cool neutral. The
+   * "Kitchen-Table Ledger" warm-paper look (operator decision 2026-07-14) is
+   * superseded by the operator's 2026-07-23 direction to move to the ADS
+   * palette Jira ships today — see docs/design/foundations/ for the record.
+   * DS-owned literals — referenced ONLY by theme.css's LIGHT branch of
+   * light-dark() roles below. The DARK branch keeps referencing the
+   * neutral/orange dark primitives above, untouched, so dark mode stays
+   * structurally intact.
+   * Primitive rename to honest ADS-based names (--ledger-* → e.g. --brand-*)
+   * is deliberately deferred — filed as follow-up, not bundled with this
+   * value-only swap (zero portal `var()` coupling makes the rename purely
+   * cosmetic; bundling it here would destroy revert/review granularity).
+   * See packages/ui/index.md for the follow-up record.
+   * Source of truth: .intermediate/design/jira-palette/jira-palette.html §07a. */
+  --ledger-cream:       #F7F8F9;   /* canvas/page bg — operator-set 2026-07-23; light neutral gray a hair off white (low canvas/card contrast). Card separation is carried by --shadow-1, not by canvas/card tint delta. */
+  --ledger-paper:       #FFFFFF;   /* elevation.surface · Neutral0 — card/popover/field-rest/control-raised — was #fbf7ec */
+  --ledger-ink-900:     #292A2E;   /* color.text · Neutral1000 — foreground — was #2c2820 */
+  --ledger-ink-700:     #505258;   /* color.text.subtle · Neutral800 — muted-foreground — was #6b6250 */
+  --ledger-ink-500:     #6B6E76;   /* color.text.subtlest · Neutral700 — meta-foreground — was #9a917c (fixes 2.9:1 contrast defect) */
+  --ledger-line:        #0B120E24; /* color.border · Neutral300A — border — was #e2d9c4 */
+  --ledger-line-soft:   #0515240F; /* color.border.disabled · Neutral200A — border-strong / segmented track — was #ece4d2 */
+  --ledger-hover-tint:  #F0F1F2;   /* elevation.surface.hovered · Neutral200 — hover surfaces — was #ece2cd */
+  --ledger-active-tint: #E9F2FE;   /* color.background.selected · Blue100 — selected/pressed surfaces — was #e5dabf */
+  --ledger-green-800:   #1868DB;   /* color.background.brand.bold · Blue700 — primary fill; NOT var(--color-wa-green) — was #1f7a48 */
+  --ledger-green-900:   #1558BC;   /* color.background.brand.bold.hovered · Blue800 — primary hover/pressed — was #155d37 */
+  --ledger-green-tint:  #E9F2FE;   /* color.background.brand.subtlest · Blue100 — accent-soft fill — was #e6efe4 */
+  --ledger-blue:        #4688EC;   /* color.border.focused · Blue500 — focus ring — was #55799a */
+
+/* ─── Elevation tiers ────────────────────────────────────────────────────────
+ * Progressive ring+shadow ladder.
+ *   --shadow-1 = card
+ *   --shadow-2 = popover
+ *   --shadow-3 = modal / command
+ *   --shadow-chip = chip / badge boundary
+ * Use semantic aliases (shadow-card, shadow-popover, etc.) from theme.css.
+ *
+ * Atlassian retheme 2026-07-23: re-pointed to ADS elevation.shadow.raised /
+ * .overlay (@atlaskit/tokens@16.3.0). ADS ships TWO shadow tiers; Listo has
+ * three, so --shadow-3 derives from .overlay (same value as --shadow-2) —
+ * ADS has no third tier to map to. See .intermediate/design/jira-palette/
+ * jira-palette.html §07a. */
+  --shadow-1: light-dark(0 1px 1px rgba(30,31,33,.25), 0 1px 1px rgba(1,4,4,.5)),
+              light-dark(0 0 1px rgba(30,31,33,.31),  0 0 1px rgba(1,4,4,.5));
+  --shadow-2: light-dark(0 0 0 1px transparent,         0 0 0 1px rgba(189,189,189,.12)),
+              light-dark(0 8px 12px rgba(30,31,33,.15), 0 8px 12px rgba(1,4,4,.36)),
+              light-dark(0 0 1px rgba(30,31,33,.31),    0 0 1px 1px rgba(1,4,4,.5));
+  --shadow-3: var(--shadow-2);   /* derived — ADS has no third tier */
+  --shadow-chip: light-dark(0 0 0 1px rgba(30,31,33,.12), 0 0 1px rgba(1,4,4,.5));
+
+/* ─── Z-index ─────────────────────────────────────────────────────────────────
+ * Z-overlay is shared by every portaled overlay; stacking resolved by Radix Portal
+ * mount order. Splitting backdrop/content tiers caused portaled dropdowns to render
+ * behind drawers — do not split.
+ * NOTE: Tailwind v4 doesn't auto-generate z-* utilities from --z-* tokens;
+ * utilities.css has explicit @utility z-sticky/overlay/toast bridges. */
+  --z-sticky:  10;
+  --z-overlay: 50;
+  --z-toast:   60;
+
+  /* ─── Opacity ─────────────────────────────────────────────────────────────────
+ * :root copy is kept so switch/disabled logic can read raw values at runtime. */
+  --opacity-dim:  0.38;   /* heavily reduced — solid filled disabled shapes (preserves form) */
+  --opacity-mid:  0.55;   /* default disabled — interactive elements that are off */
+  --opacity-mute: 0.70;   /* lightly reduced — disabled placeholder text (stays legible) */
+}
+
+/* ─── Spacing ────────────────────────────────────────────────────────────────
+ * --size-scrollbar is intentionally omitted from the scale (non-multiplier).  */
+:root {
+  --spacing: 0.25rem;       /* Tailwind v4 does NOT ship a default --spacing; this is required */
+  --size-scrollbar: 6px;    /* non-multiplier size used directly by base.css scrollbar styling */
+}
+
+/* ─── Blur ───────────────────────────────────────────────────────────────────*/
+:root {
+  --blur-2xs: 2px;
+  --blur-xs:  4px;   /* Tailwind v4 default; matches --blur-overlay-dialog in theme.css */
+}
+
+/* ─── Duration ───────────────────────────────────────────────────────────────*/
+:root {
+  --duration-instant: 80ms;    /* Hover bg, press overlay */
+  --duration-fast:    120ms;   /* Focus ring, badge state change, icon swap */
+  --duration-subtle:  180ms;   /* Button press scale, row select highlight */
+  --duration-base:    220ms;   /* Modal/popover enter, row reveal — ceiling for state changes; continuous loops use --motion-continuous */
+}
+
+/* ─── Easing ─────────────────────────────────────────────────────────────────*/
+:root {
+  --ease-out-standard:   cubic-bezier(0.2, 0, 0, 1);       /* General state changes */
+  --ease-out-emphasized:  cubic-bezier(0.05, 0.7, 0.1, 1); /* Enter transitions */
+  --ease-in-accelerated:  cubic-bezier(0.3, 0, 1, 1);      /* Exit/dismissal — clears stage fast */
+  --ease-linear:          linear;                           /* Shimmer, progress loops only */
+  --ease-natural:         cubic-bezier(0.25, 0.1, 0.25, 1); /* Drawer panel enter — non-zero initial velocity so the panel moves from frame one; --ease-out-emphasized's near-flat start would introduce windup from the viewport edge */
+}
+
+/* ─── Animations ─────────────────────────────────────────────────────────────
+ * Composite shorthand values referencing duration + easing primitives above.
+ * Resolve at runtime since --duration-* and --ease-* are on :root. */
+:root {
+  --animate-fade-in:        fade-in          var(--duration-base)   var(--ease-out-standard);
+  --animate-fade-out:       fade-out         var(--duration-instant) var(--ease-in-accelerated);  /* exits clear the stage before the next action — 80ms accelerated */
+  --animate-slide-up-in:    slide-up-in      var(--duration-base)    var(--ease-out-emphasized); /* dialog/popover enter — 6px translate */
+  --animate-slide-down-out: slide-down-out   var(--duration-instant) var(--ease-in-accelerated);  /* exits clear the stage before the next action — 80ms accelerated */
+  --animate-row-reveal:     row-reveal       var(--duration-subtle)  var(--ease-out-standard) both; /* streaming table row arrival — 4px translate, fill-mode both for staggered reveal */
+  --animate-shimmer:        shimmer          1800ms                   var(--ease-linear) infinite;
+  --animate-running-pulse:  running-pulse    1600ms                   var(--ease-linear) infinite;
+  --animate-slide-right-in:         slide-right-in         var(--duration-base)    var(--ease-out-emphasized);   /* Trace panel enters from right */
+  --animate-slide-left-out:         slide-left-out         var(--duration-instant) var(--ease-in-accelerated);   /* Trace panel exits to right — 80ms accelerated */
+  --animate-slide-up-from-bottom:   slide-up-from-bottom   var(--duration-base)    var(--ease-out-emphasized);   /* Mobile sheet enters from bottom edge */
+  --animate-slide-down-to-bottom:   slide-down-to-bottom   var(--duration-instant) var(--ease-in-accelerated);   /* Mobile sheet exits to bottom edge — 80ms accelerated */
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes slide-up-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down-out {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(8px); }
+}
+
+@keyframes row-reveal {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes shimmer {
+  from { background-position: 200% center; }
+  to   { background-position: -200% center; }
+}
+
+@keyframes running-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
+}
+
+@keyframes slide-right-in {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-left-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(12px); }
+}
+
+@keyframes slide-up-from-bottom {
+  from { opacity: 0; transform: translateY(100%); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-down-to-bottom {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(100%); }
+}
+
+@keyframes table-head-scroll-cue {
+  entry 0%  { box-shadow: none; border-color: transparent; }
+  entry 10% { box-shadow: var(--shadow-scroll-cue); border-color: var(--color-border); }
+}
+
+
+/* ─── Motion composites ──────────────────────────────────────────────────────
+ * Lives in :root (not @theme) because these compose two primitives into a
+ * shorthand value with no single Tailwind utility category.
+ * Reference with prop-(--motion-*) in Tailwind className strings. */
+:root {
+  --motion-state-change: var(--duration-fast) var(--ease-out-standard);    /* hover bg, focus ring, badge state swap */
+  --motion-micro:        var(--duration-subtle) var(--ease-out-standard);  /* button press scale, row select highlight */
+  --motion-enter:        var(--duration-base) var(--ease-out-emphasized);  /* modal/popover open, row reveal, tooltip appear */
+  --motion-exit:         var(--duration-instant) var(--ease-in-accelerated);  /* modal/popover close, tooltip dismiss — 80ms accelerated */
+  --motion-continuous:   1800ms var(--ease-linear) infinite;               /* skeleton shimmer, indeterminate progress — loops only */
+}
+
+
+/* ─── Typography ─────────────────────────────────────────────────────────────
+ * Generates: font-{sans,mono}, typography-{display,subtitle,body,label,caption,code,meta,table-header},
+ * font-{regular,medium,semibold,bold}, tracking-*, leading-*.
+ *
+ * USAGE NOTE: --typography-meta (10px) is designed for mono + uppercase + ≥0.14em tracking.
+ * The token enforces none of this — apply font-mono + uppercase + tracking in the component. */
+@theme {
+  --text-*: initial; /* wipe Tailwind's default text-{xs,sm,base,...} font-size utilities — our typography scale lives in the typography-* namespace below */
+
+  /* Font families — IBM Plex suite */
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, monospace;
+
+  /* Font sizes with paired line-heights */
+  --typography-code:    0.75rem;   /* 12px — monospace code fragments */
+  --typography-code--line-height: 1.25rem;
+
+  --typography-caption: 0.75rem;   /* 12px — supporting labels, metadata */
+  --typography-caption--line-height: 1rem;
+
+  --typography-label:   0.75rem;   /* 12px — form labels, nav labels */
+  --typography-label--line-height: 1rem;
+
+  --typography-body:    0.875rem;  /* 14px — primary reading size */
+  --typography-body--line-height: 1.375rem;
+
+  --typography-subtitle: 1rem;      /* 16px — dialog, drawer, sheet, section headings */
+  --typography-subtitle--line-height: 1.375rem;
+
+  --typography-display: 1.5rem;    /* 24px — page / hero display */
+  --typography-display--line-height: 1.75rem;
+
+  --typography-meta:    0.625rem;  /* 10px — micro labels: column headers, timestamps, status pips.
+                              *         Use with font-mono + uppercase + tracking ≥0.14em. */
+  --typography-meta--line-height: 0.875rem;
+
+  --typography-table-header: 0.625rem;   /* 10px — table column headers; sans + uppercase + tracking */
+  --typography-table-header--line-height: 0.875rem;
+
+  /* Letter-spacing paired tokens */
+  --typography-display--letter-spacing:  -0.02em;
+  --typography-subtitle--letter-spacing: -0.01em;
+  --typography-body--letter-spacing:      0em;
+  --typography-label--letter-spacing:     0.02em;
+  --typography-caption--letter-spacing:   0em;
+  --typography-code--letter-spacing:      0em;
+  --typography-meta--letter-spacing:      0.16em;
+  --typography-table-header--letter-spacing: 0.08em;
+
+  /* Font weights */
+  --font-weight-regular:  400;
+  --font-weight-medium:   500;
+  --font-weight-semibold: 600;
+  --font-weight-bold:     700;
+}
+
+/* ─── Radius ─────────────────────────────────────────────────────────────────
+ * --radius-surface is a semantic alias not in the Tailwind scale. Defined here
+ * so it can be referenced both as a Tailwind utility (rounded-surface via theme.css)
+ * and as a CSS custom property (var(--radius-surface)) in component inline styles. */
+:root {
+  --radius-surface: 0.375rem;   /* 6px — ledger paper-box radius (DS default 2026-07-14, was 8px/matched --radius-lg); cards, dialogs, toasts, drawers */
+}

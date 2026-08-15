@@ -1,0 +1,35 @@
+# Docker build-context hygiene for the monorepo images (context = repo root,
+# shared by apps/api/Dockerfile and apps/portal/Dockerfile). Everything here is
+# either regenerated inside the image or must never ship in it.
+
+# Dependencies + build outputs (reinstalled / rebuilt in the builder stage)
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/out
+**/build
+
+# Git + agent worktrees (each worktree is a full repo copy) + scratch workspace
+.git
+.gitignore
+.claude
+.intermediate
+
+# Local data + secrets — never baked into an image
+**/.data
+**/.env
+**/.env.*
+!**/.env.example
+
+# Editor / OS / logs / test artifacts
+**/.DS_Store
+**/*.log
+**/coverage
+.vscode
+.idea
+
+# Docs & markdown — reference material, never needed in the runtime image
+docs
+manuals
+**/*.md

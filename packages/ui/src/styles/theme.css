@@ -1,0 +1,479 @@
+/* =============================================================================
+ * Theme tokens — semantic role tokens describing what values MEAN.
+ * Maps primitives via var() and light-dark() for mode support.
+ *
+ * @theme {} self-targets @layer theme — no layer() annotation needed on the @import.
+ * ============================================================================= */
+
+/* ─── Color scheme ───────────────────────────────────────────────────────────*/
+:root            { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+
+/* ─── Color roles ────────────────────────────────────────────────────────────
+ * Semantic --color-* roles defined via light-dark(<lightPrimitive>, <darkPrimitive>).
+ * Theme switching is controlled solely by color-scheme on :root.
+ *
+ * Plain @theme (not @theme inline) is required so the vars exist on :root —
+ * base.css references var(--color-foreground) etc. directly. */
+@theme {
+   /* wipe out tailwind colors */
+   --color-*: initial;
+
+  /* Functional literals — color is the intent, not the role. */
+  --color-white: var(--white);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * FOUNDATION — the canvas. Neutral surfaces, typography, structural borders.
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --color-background:        light-dark(var(--ledger-cream),   var(--surface-bg-dark));
+
+  /* Field-rest surface — resting bg for Input / Textarea / Select / Combobox AND
+   * table-header strips. Single token so form fields at rest pair visually with
+   * table headings in both modes.
+   * Dark: 30% background + 70% popover ≈ soft sink, avoids a hard contrast band.
+   * Uses --surface-popover-dark (not card-dark) because card-dark is now flat against
+   * background in dark mode; fields at rest need a visible sink below the workspace. */
+  --color-field-rest:        light-dark(
+    var(--ledger-paper),
+    color-mix(in srgb, var(--surface-bg-dark) 30%, var(--surface-popover-dark) 70%)
+  );
+  /* Atlassian retheme 2026-07-23: dedicated color.border.input step — darker than
+   * ambient --color-border for form-field legibility. Was: var(--color-border). */
+  --color-form-field-border: light-dark(#8C8F97, #7E8188);
+
+  /* Typography — 3-tier reading hierarchy.
+   *   foreground:       body, headings, main values
+   *   muted-foreground: nav, subtitles, helper text (~25pp gap to foreground)
+   *   meta-foreground:  column headers, placeholders, count badges (~42pp gap)
+   *   text-disabled:    non-interactive controls only */
+  --color-foreground:        light-dark(var(--ledger-ink-900), var(--ink-50));
+  --color-muted-foreground:  light-dark(var(--ledger-ink-700), var(--ink-100));
+  --color-meta-foreground:   light-dark(var(--ledger-ink-500), var(--ink-200));
+  --color-text-disabled:     light-dark(var(--ink-400), var(--ink-500));
+
+  --color-muted-surface:        light-dark(var(--surface-muted-light),     var(--surface-muted-dark));
+
+  /* Borders — alpha-tinted hairlines, compose on any surface.
+   *   border:        default hairline
+   *   border-strong: ~+10pp alpha for selected/active edges */
+  --color-border:        light-dark(var(--ledger-line),      rgb(var(--border-seed-dark) / .122));  /* was .045, Atlassian retheme 2026-07-23 */
+  --color-border-strong: light-dark(var(--ledger-line-soft),  rgb(var(--border-seed-dark) / .07));   /* was .086, Atlassian retheme 2026-07-23 */
+  /* Progress track — dedicated token because muted-surface dark === card dark;
+   * reusing muted-surface makes the track vanish on table rows.
+   * Atlassian retheme 2026-07-23: color.background.neutral literal. */
+  --color-progress-track: light-dark(#0515240F, #CECED912);
+  /* Progress neutral fill — PINNED both themes; see Progress spec Q10. */
+  --color-progress-fill-neutral: #B7B9BE; /* ADS Neutral400 — PINNED — was #B3BFCE, Atlassian retheme 2026-07-23 */
+
+  /* Code block surface — PINNED flat literals; always dark in both themes.
+   * Dark mode: --ink-900 (#18212E) reads pinned-dark vs --surface-bg-dark (#1A1A19). */
+  --color-code-bg:     var(--ink-900);             /* #18212E — block body + header */
+  --color-code-fg:     var(--ink-50);              /* #E8EEF5 — primary code text */
+  --color-code-muted:  var(--ink-100);             /* #B3BFCE — language label */
+  --color-code-border: rgba(255 255 255 / .06);    /* hairline on dark surface */
+  /* Highlight surface for popover-content items (Select / Command / DropdownMenu / Combobox).
+   * Atlassian retheme 2026-07-23: ADS uses one hovered surface literal, not a mix. */
+  --color-highlight-surface: light-dark(#F0F1F2, #303134);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * IDENTITY — brand-meaningful hues. Sparse usage.
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  /* Primary — brand action identity. Primary buttons, active tabs,
+   * checkbox/radio fills, switch on-state, progress bars, links. */
+  --color-primary:            light-dark(var(--ledger-green-800), var(--orange-500));
+  /* Un-pinned Atlassian retheme 2026-07-23: ADS dark brand is a LIGHT blue, so a
+   * white label measures 2.74:1 — color.text.inverse is dark in dark mode.
+   * Was: var(--white); PINNED. */
+  --color-primary-foreground: light-dark(var(--white), #1F1F21);
+
+  /* Brand — logo/mark surfaces only. Never interactive.
+   * Operator decision 2026-07-14: DS brand hue moves orange → ledger green
+   * globally (brand is pinned, not light-dark-scoped — see spec). */
+  --color-brand:            var(--ledger-green-800);
+  --color-brand-foreground: var(--white);
+  --color-brand-hover:      var(--ledger-green-900); /* PINNED — darker green step */
+  /* Atlassian retheme 2026-07-23: deliberately NOT re-pointed to the ADS blanket.selected
+   * literal — this formula already inherits the new ADS Blue via --ledger-green-800 above,
+   * and rewriting it to a light-dark() pair would change token SHAPE for zero value gain. */
+  --color-brand-glow:       color-mix(in srgb, var(--ledger-green-800) 16%, transparent);
+
+  /* ═══════════════════════════════════════════════════════════════════════════
+   * STATE — interaction + status. Status hues follow the triplet pattern:
+   *   SOLID (icon, dot, fill) + SUBTLE (~10% alpha backdrop) + TEXT (alias).
+   * ═══════════════════════════════════════════════════════════════════════════ */
+
+  --color-primary-hover: light-dark(var(--ledger-green-900), var(--orange-400));
+  /* Atlassian retheme 2026-07-23: ADS ships a dedicated selected blanket
+   * (color.blanket.selected) — use it instead of a color-mix derivation. */
+  --color-primary-glow:  light-dark(#388BFF14, #1D7AFC14);
+  /* Soft / border: alpha tints for badges and selection pills.
+   * Atlassian retheme 2026-07-23: literal ADS steps replace the color-mix derivation. */
+  --color-primary-soft:   light-dark(#E9F2FE, #1C2B42);   /* color.background.brand.subtlest */
+  --color-primary-border: light-dark(#CFE1FD, #123263);   /* accent.blue.subtler */
+  /* Disabled — re-derived on the ADS ramp (45%/60% mix of brand, as before). */
+  --color-primary-disabled: light-dark(#97BBEF, #3D5E91); /* was #9AC3AD/#4A2010, Atlassian retheme 2026-07-23 */
+  --color-border-disabled:  light-dark(#DDDEE1, #4B4D51); /* Neutral300 / DarkNeutral400 — was #C8CDD6/#2D3440, Atlassian retheme 2026-07-23 */
+
+  /* Hover surface — rows and interactive backdrops. Ledger: warm paper hover tint. */
+  --color-hover-surface:    light-dark(
+    var(--ledger-hover-tint),
+    color-mix(in srgb, var(--surface-card-dark) 92%, white 8%)
+  );
+  /* Hover surface — scan aid for non-interactive rows. Half-intensity of
+   * --color-hover-surface; aids horizontal scanning without implying click affordance. */
+  /* Atlassian retheme 2026-07-23: derived alpha literal — no dedicated ADS name. */
+  --color-hover-surface-subtle: light-dark(#17171708, #CECED912);
+  --color-selected-surface: light-dark(
+    var(--ledger-active-tint),
+    color-mix(in srgb, var(--surface-secondary-dark) 90%, var(--orange-800) 10%)
+  );
+  /* control-raised uses popover-dark in dark mode so focused form-field highlights
+   * and switch raised bg remain visibly lifted above the flat card surface. */
+  --color-control-raised:   light-dark(var(--ledger-paper),  var(--surface-popover-dark));
+
+  /* Accent — bg-accent utility used by shadcn internals (Command / DropdownMenu active).
+   * Atlassian retheme 2026-07-23: literal ADS hovered-surface steps replace the color-mix
+   * derivation (kept as a literal, not var(--color-hover-surface), so getComputedStyle
+   * returns a resolved value on :root). */
+  --color-accent:            light-dark(#F0F1F2, #2B2C2F);
+  --color-accent-foreground: light-dark(var(--ledger-ink-900), var(--ink-50));
+
+  --color-ring:      light-dark(var(--ledger-green-800), var(--orange-500));
+  --color-ring-glow: light-dark(
+    color-mix(in srgb, var(--ledger-green-800) 18%, transparent),
+    color-mix(in srgb, var(--orange-500) 14%, transparent)
+  );
+
+  /* Dedicated focus-ring token — kept distinct from --color-ring/--color-primary
+   * so a consumer can restyle the keyboard-focus indicator (base.css
+   * *:focus-visible, --shadow-focus-ring, segmented control) without touching
+   * brand color, and without semantically reusing an unrelated status token
+   * (e.g. a "read" indicator) whose value happens to look similar today.
+   * DS default (2026-07-14): dedicated ledger blue in light, still aliases
+   * --color-ring in dark (dark has no distinct focus hue defined). */
+  --color-focus:     light-dark(var(--ledger-blue), var(--color-ring));
+
+  /* Destructive — irreversible action affordance. Errored hue family.
+   * Normal at the off-palette darker step; hover lifts to the palette step
+   * (matches primary's hover-brightens-in-dark / hover-darkens-in-light pattern).
+   * Active steps further in the hover direction: darker in light, brighter in dark. */
+  /* Atlassian retheme 2026-07-23: ADS danger.bold family — bold fill steps,
+   * distinct from the errored TEXT step (--errored-600/400 above). */
+  --color-destructive:            light-dark(#C9372C,                         #F87168);  /* danger.bold        Red700/Red400 — was #bb3636/#e84444 */
+  --color-destructive-foreground: light-dark(var(--white),                    #1F1F21);  /* un-pinned — same reason as --color-primary-foreground */
+  --color-destructive-hover:      light-dark(var(--errored-600),              var(--errored-400));
+  --color-destructive-active:     light-dark(#872821,                         #FFB8B2);  /* danger.bold.pressed Red850/Red250 — was #a02e2e/#f68d8d */
+
+  /* Status states — process / outcome semantics.
+   *   scored:  success / passed
+   *   running: in-progress
+   *   errored: failure (shares destructive hue)
+   *   warning: flagged non-fatal
+   *   not-run: queued / inactive */
+  --color-state-scored:         light-dark(var(--scored-600), var(--scored-400));
+  /* Atlassian retheme 2026-07-23: literal ADS backgrounds replace the color-mix
+   * derivation — the mixes cannot reproduce Lime100/Blue100/Red100/Orange100 from a text step. */
+  --color-state-scored-subtle:  light-dark(#EFFFD6, #28311B);   /* color.background.success */
+  --color-state-scored-text:    light-dark(var(--scored-600), var(--scored-400));
+
+  --color-state-running:        light-dark(var(--running-600), var(--running-400));
+  --color-state-running-subtle: light-dark(#E9F2FE, #1C2B42);   /* color.background.information */
+  --color-state-running-text:   light-dark(var(--running-600), var(--running-400));
+
+  --color-state-errored:        light-dark(var(--errored-600), var(--errored-400));
+  --color-state-errored-subtle: light-dark(#FFECEB, #42221F);   /* color.background.danger */
+  --color-state-errored-text:   light-dark(var(--errored-600), var(--errored-400));
+
+  --color-state-warning:        light-dark(var(--warning-600), var(--warning-400));
+  --color-state-warning-subtle: light-dark(#FFF5DB, #3A2C1F);   /* color.background.warning */
+  --color-state-warning-text:   light-dark(var(--warning-600), var(--warning-400));
+
+  --color-state-not-run:        light-dark(var(--ink-800), var(--ink-100)); /* status text must be readable → READ tier */
+  --color-state-not-run-subtle: light-dark(#0515240F, #CECED912);   /* color.background.neutral — was surface-muted-* mix */
+
+  /* Alert backgrounds. Atlassian retheme 2026-07-23: same literal ADS backgrounds
+   * as the state-*-subtle tokens above, replacing the color-mix derivation. */
+  --color-alert-destructive-bg: light-dark(#FFECEB, #42221F);
+  --color-alert-warning-bg:     light-dark(#FFF5DB, #3A2C1F);
+  --color-alert-success-bg:     light-dark(#EFFFD6, #28311B);
+  --color-alert-info-bg:        light-dark(#E9F2FE, #1C2B42);
+
+  /* DATA VIZ — chart palette extracted to ./chart.css (reserved for future use). */
+}
+
+/* ─── Surface roles ──────────────────────────────────────────────────────────
+ * Component-specific token aliases. New components add their bindings here.
+ * Foundational tokens live in primitive.css. */
+@theme {
+  /* Card — flat against workspace in dark (border+shadow carry the boundary).
+   * Light: recessed off-white pocket. */
+  --color-card:               light-dark(var(--ledger-paper), var(--surface-card-dark));
+  --color-card-foreground:    var(--color-foreground);
+  /* Popover — must lift visually above the background when portaled.
+   * Dark: --surface-popover-dark (#131313) provides a slight recess vs workspace (#1A1A19)
+   * that reads as elevation when combined with --shadow-popover. Same as old card-dark.
+   * Light: ledger paper (same as card — border+shadow carry the boundary). */
+  --color-popover:            light-dark(var(--ledger-paper), var(--surface-popover-dark));
+  --color-popover-foreground: var(--color-foreground);
+  /* Form field surface — uses control-raised (popover-dark in dark) so elevated fields
+   * read above the flat card background. */
+  --color-form-field-surface: var(--color-control-raised);
+  /* Disabled fill for input/select/combobox/textarea triggers. Aliases hover-surface
+   * (same neutral inset value) but stays semantically distinct from hover. */
+  --color-form-field-disabled: var(--color-hover-surface);
+}
+
+/* ─── Overlay roles ──────────────────────────────────────────────────────────
+ * Lives in @theme so they generate rank-1 utilities (bg-overlay-*, backdrop-blur-overlay-*). */
+@theme {
+  /* Atlassian retheme 2026-07-23: deliberately NOT re-pointed to ADS color.blanket.
+   * These derive from --neutral-950, which is out of this retheme's primitive scope
+   * (no ADS mapping was made for it), so the formula is left untouched per §3b. */
+  --color-overlay-dialog: color-mix(in srgb, var(--neutral-950) 10%, transparent);
+  --color-overlay-drawer: color-mix(in srgb, var(--neutral-950)  2%, transparent);
+}
+
+@theme inline {
+  --blur-overlay-dialog: var(--blur-xs);   /* 4px — heavier; content behind recedes */
+  --blur-overlay-drawer: 2px;              /* lighter; background reads through */
+}
+
+/* ─── Shadow aliases ─────────────────────────────────────────────────────────
+ * Semantic shadow roles mapping elevation tier primitives to component contexts.
+ * Shadow design: docs/design/foundations/shadows-light-dark-unification.md */
+@theme {
+  /* Symmetric scroll-cue pair — header (downward) + footer (upward). Border carries
+   * the bulk of the signal; shadow adds depth. */
+  --shadow-scroll-cue:          0  3px 3px -2px light-dark(rgba(28,32,36,.05), rgba(0,0,0,.22));
+  --shadow-scroll-cue-inverted: 0 -3px 3px -2px light-dark(rgba(28,32,36,.05), rgba(0,0,0,.22));
+  /* Switch off-state — only surface where shadow is the sole separation cue; stepped above --shadow-chip. */
+  --shadow-sw-thumb-off: 0 1px 2px light-dark(rgba(28,32,36,.30), rgba(0,0,0,.60)),
+                         0 2px 6px  light-dark(rgba(28,32,36,.18), rgba(0,0,0,.44));
+  /* RGB retuned to match --errored-600/400's new ADS values (#AE2E24 / #FD9891) —
+   * this token hardcodes the color rather than referencing the primitive, so it
+   * goes stale on any errored-hue repoint. Atlassian retheme 2026-07-23; was
+   * rgba(212,86,86,.12)/rgba(244,116,116,.18) (the pre-retheme errored-600/400). */
+  --shadow-focus-errored: 0 0 0 3px light-dark(rgba(174,46,36,.12), rgba(253,152,145,.18));
+  /* Focus ring — matches *:focus-visible in base.css exactly (same halo +
+   * ring geometry, same --color-ring token). Halo uses --color-background as
+   * a generic page-backdrop approximation, not a brand hue. */
+  --shadow-focus-ring:         0 0 0 2px var(--color-background), 0 0 0 4px var(--color-focus);
+  /* Errored counterpart — same halo + state-errored outer; mirrors [aria-invalid="true"]:focus-visible in base.css. */
+  --shadow-focus-ring-errored: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-state-errored);
+
+  --shadow-card:        var(--shadow-1);
+  --shadow-popover:     var(--shadow-2);
+  --shadow-modal:       var(--shadow-3);
+  --shadow-command:     var(--shadow-3);
+  --shadow-drawer:      var(--shadow-3);
+  /* Right-anchored drawer: the only visible panel edge is the left one. Composing
+   * shadow-3's outer 1px ring (~6% black) with the inset 1px border (~16% black)
+   * stacked two parallel lines at that edge — the same doubled-edge pattern PR #144
+   * removed from --shadow-3 itself. Other drawer edges clip against the viewport,
+   * so the outer ring contributes nothing there. Keep just the inset border. */
+  --shadow-drawer-edge: inset 1px 0 0 var(--color-border);
+}
+
+/* ─── Primitive passthrough — @theme inline ──────────────────────────────────
+ * Passes a primitive's :root value through to Tailwind utility generation without
+ * moving the value off :root. Required for any primitive also read at runtime via
+ * var() — e.g. --duration-* is overridden by prefers-reduced-motion below, and
+ * --blur-xs is read by --blur-overlay-dialog. */
+
+@theme inline {
+  --spacing: var(--spacing);
+}
+
+@theme inline {
+  --blur-2xs: var(--blur-2xs);
+  --blur-xs:  var(--blur-xs);
+}
+
+@theme inline {
+  --duration-*:       initial;           /* wipe Tailwind defaults before our named scale */
+  --duration-instant: var(--duration-instant);
+  --duration-fast:    var(--duration-fast);
+  --duration-subtle:  var(--duration-subtle);
+  --duration-base:    var(--duration-base);
+}
+
+/* ─── Tailwind v4 transition-duration namespace ──────────────────────────────
+ * Tailwind v4 generates duration-* utilities from --transition-duration-* names,
+ * not --duration-*. The aliases below point at the :root originals so the
+ * duration-fast / duration-subtle / etc. utility classes resolve to our spec
+ * values (120ms, 180ms, …) rather than falling back to the 150ms default.
+ * The :root --duration-* originals must stay because motion composites and the
+ * prefers-reduced-motion override in this file reference them by name. */
+@theme inline {
+  --transition-duration-instant: var(--duration-instant);
+  --transition-duration-fast:    var(--duration-fast);
+  --transition-duration-subtle:  var(--duration-subtle);
+  --transition-duration-base:    var(--duration-base);
+}
+
+@theme inline {
+  --ease-out-standard:    var(--ease-out-standard);
+  --ease-out-emphasized:  var(--ease-out-emphasized);
+  --ease-in-accelerated:  var(--ease-in-accelerated);
+  --ease-linear:          var(--ease-linear);
+  --ease-natural:         var(--ease-natural);
+}
+
+@theme inline {
+  --animate-fade-in:        var(--animate-fade-in);
+  --animate-fade-out:       var(--animate-fade-out);
+  --animate-slide-up-in:    var(--animate-slide-up-in);
+  --animate-slide-down-out: var(--animate-slide-down-out);
+  --animate-row-reveal:     var(--animate-row-reveal);
+  --animate-shimmer:         var(--animate-shimmer);
+  --animate-running-pulse:   var(--animate-running-pulse);
+  --animate-slide-right-in:          var(--animate-slide-right-in);
+  --animate-slide-left-out:          var(--animate-slide-left-out);
+  --animate-slide-up-from-bottom:    var(--animate-slide-up-from-bottom);
+  --animate-slide-down-to-bottom:    var(--animate-slide-down-to-bottom);
+}
+
+
+/* ─── Component aliases ──────────────────────────────────────────────────────*/
+@theme {
+  /* Button disabled. Selector guard: button.tsx scopes these to :not([data-loading="true"]). */
+
+  --color-button-disabled-bg-filled: light-dark(
+    color-mix(in srgb, var(--color-btn-primary) 45%, white),
+    color-mix(in srgb, var(--color-btn-primary) 60%, black)
+  );
+  /* OKLCH not color-mix: red mixed toward black darkens to "death red",
+   * red mixed toward neutral collapses to grey. Explicit L,C,H sidesteps both. */
+  --color-button-disabled-bg-filled-destructive: light-dark(
+    oklch(0.80 0.10 27),
+    oklch(0.48 0.10 27)
+  );
+  --color-button-disabled-bg-ghost: transparent;
+
+  --color-button-disabled-text-primary:           light-dark(var(--color-btn-primary-foreground), var(--ink-300));
+  --color-button-disabled-text-destructive:       light-dark(var(--color-destructive-foreground), var(--ink-300));
+  --color-button-disabled-text-ghost:             light-dark(var(--ink-400),                      var(--ink-300));
+  --color-button-disabled-text-destructive-ghost: light-dark(oklch(0.65 0.08 27),                 oklch(0.62 0.08 27));
+
+  /* Accent (Button `accent` variant) disabled — mirrors the primary pattern
+   * above, derived from --color-btn-accent instead of --color-btn-primary. */
+  --color-button-disabled-bg-filled-accent: light-dark(
+    color-mix(in srgb, var(--color-btn-accent) 45%, white),
+    color-mix(in srgb, var(--color-btn-accent) 60%, black)
+  );
+  --color-button-disabled-text-accent: light-dark(var(--color-btn-accent-foreground), var(--ink-300));
+
+  --radius-badge: 3px; /* @atlaskit/lozenge@14.1.4 var(--ds-radius-small) — was 4px (Radius04, wrong step), was 999px before that */
+  /* --radius-surface passthrough; literal value set in primitive.css (ledger paper-box radius) */
+  --radius-surface: var(--radius-surface);
+
+  /* Dialog spatial tokens — desktop modal geometry.
+   * max-h-[80vh] scoped to sm+ so mobile fullscreen is not height-capped.
+   * top-[10vh] anchors the panel 10% from the viewport top on desktop. */
+  --dialog-top-offset: 10vh;
+  --dialog-max-h: 80vh;
+}
+
+/* ─── Button ledger variant tokens ───────────────────────────────────────────
+ * Component-scoped semantic tokens for Button's `primary` / `outline` / `ghost`
+ * / `accent` / `accent-soft` variants. DS default 2026-07-14: the "kitchen-
+ * table ledger" look IS the default (light branch) — apps/portal no longer
+ * needs to override this block. Dark preserves the pre-ledger ink-scale
+ * defaults, unused but intact. Scoped under `btn-*` so overriding them
+ * cascades ONLY to Button, never to shared roles like
+ * --color-primary/--color-border consumed elsewhere in the DS. */
+@theme {
+  /* primary — solid fill, highest-contrast action.
+   * DS default 2026-07-14: ledger green in light (dark preserved on the old
+   * ink-scale — see primitive.css ledger-* block for the risk posture). */
+  --color-btn-primary:            light-dark(var(--ledger-green-800), var(--ink-50));
+  --color-btn-primary-hover:      light-dark(var(--ledger-green-900), var(--ink-100));
+  /* Un-pinned Atlassian retheme 2026-07-23 — same reason as --color-primary-foreground. Was: var(--ink-900). */
+  --color-btn-primary-foreground: light-dark(var(--white),   #1F1F21);
+
+  /* accent — solid fill, secondary brand action (e.g. an app's messaging channel).
+   * Operator decision 2026-07-13: primary === accent visually (both green)
+   * until a later variant collapse. */
+  --color-btn-accent:            light-dark(var(--ledger-green-800), var(--ink-200));
+  --color-btn-accent-hover:      light-dark(var(--ledger-green-900), var(--ink-100));
+  /* Un-pinned Atlassian retheme 2026-07-23 — same reason as --color-primary-foreground. Was: var(--ink-900). */
+  --color-btn-accent-foreground: light-dark(var(--white),   #1F1F21);
+
+  /* accent-soft — tint fill + 1px border, quieter accent action */
+  --color-btn-accent-soft:              light-dark(
+    var(--ledger-green-tint),
+    color-mix(in srgb, var(--ink-200) 16%, transparent)
+  );
+  --color-btn-accent-soft-border:       light-dark(var(--ledger-green-800), var(--ink-200));
+  --color-btn-accent-soft-border-hover: light-dark(var(--ledger-green-900), var(--ink-100));
+  --color-btn-accent-soft-foreground:   light-dark(var(--ledger-green-900), var(--ink-100));
+
+  /* outline — transparent + border, hover fills to a tint */
+  --color-btn-outline-border:            var(--color-border);
+  --color-btn-outline-foreground:        light-dark(var(--ledger-ink-700), var(--color-foreground)); /* ledger: muted rest text, not full ink */
+  --color-btn-outline-foreground-hover:  var(--color-foreground);
+  --color-btn-outline-hover:             var(--color-hover-surface);
+  --color-btn-outline-active:            var(--color-selected-surface);
+
+  /* ghost — text-only, no border, no fill at any state */
+  --color-btn-ghost-foreground:       var(--color-muted-foreground);
+  --color-btn-ghost-foreground-hover: var(--color-foreground);
+}
+
+/* ─── IconButton ghost ledger tokens ──────────────────────────────────────────
+ * Component-scoped tokens for IconButton's `ghost` variant (icon-only toolbar
+ * / card-header / table-row trailing actions — e.g. the jobs page info
+ * trigger). Separate from Button's --color-btn-ghost-* because IconButton's
+ * ghost has a hover/active fill (hit-target affordance for an icon-only
+ * target) where Button's ghost is text-only. DS default 2026-07-14: quiet
+ * meta-tier rest icon that jumps to full ink on hover, warm hover/active
+ * tints (light branch) — apps/portal no longer needs to override this block.
+ * Dark preserves the pre-ledger foreground/hover-surface defaults, unused
+ * but intact. */
+@theme {
+  --color-icon-btn-ghost-foreground:       light-dark(var(--ledger-ink-500), var(--color-foreground)); /* ledger: quiet meta-tier rest icon, jumps to full ink on hover */
+  --color-icon-btn-ghost-foreground-hover: var(--color-foreground);
+  --color-icon-btn-ghost-hover:            var(--color-hover-surface);
+  --color-icon-btn-ghost-active:           var(--color-selected-surface);
+}
+
+/* ─── Form-field ledger tokens ────────────────────────────────────────────────
+ * Value/placeholder text tokens shared by Input, Textarea, and Select's
+ * trigger (the "field" family riding lib/form-field-box.ts's shared box
+ * recipe). Scoped under `field-*` — distinct from the broadly-shared
+ * --color-foreground/--color-meta-foreground so an app can retheme form-field
+ * text without recoloring every other reading-tier surface in the DS.
+ * --color-field-rest (bg) and --color-form-field-border already exist above/
+ * in the Foundation block; this block only adds the two missing text roles. */
+@theme {
+  --color-field-foreground:   var(--color-foreground);
+  --color-field-placeholder:  var(--color-meta-foreground);
+}
+
+/* ─── Selected-item foreground ────────────────────────────────────────────────
+ * Pairs with --color-selected-surface (Blue100). Atlassian retheme 2026-07-23:
+ * replaces the segmented-control-only thumb/track block (sliding thumb retired
+ * in favor of Jira's connected-button-group look) — same Blue800/Blue300 ink
+ * already used for --color-state-running-text; ADS overloads blue between
+ * "selected" and "information" roles, so this intentionally matches. */
+@theme {
+  --color-selected-foreground: light-dark(var(--running-600), var(--running-400));
+}
+
+/* ─── Reduced motion ─────────────────────────────────────────────────────────
+ * Durations collapse to 0ms; loop animations suppressed via --motion-continuous.
+ * Shimmer/pulse loops need --motion-continuous: none because duration alone
+ * can't stop infinite animations. Consumers use: animation: none; background: var(--secondary).
+ *
+ * Overrides theme-layer primitive durations — lives at the theme layer. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duration-instant: 0ms;
+    --duration-fast:    0ms;
+    --duration-subtle:  0ms;
+    --duration-base:    0ms;
+    --motion-continuous: none; /* shimmer stops; static --secondary fill replaces it */
+  }
+}

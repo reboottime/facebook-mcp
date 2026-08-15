@@ -1,0 +1,87 @@
+/* =============================================================================
+   custom utilities
+   ============================================================================= */
+
+/* Tailwind v4 doesn't auto-generate z-* utilities from --z-* tokens — bridge via @utility. */
+@utility z-sticky       { z-index: var(--z-sticky);  }
+@utility z-page-chrome  { z-index: 20;                }
+@utility z-overlay      { z-index: var(--z-overlay); }
+@utility z-toast        { z-index: var(--z-toast);   }
+/* Table-internal stacking: body < col-sticky < header < corner */
+@utility z-table-col    { z-index: 2; }
+@utility z-table-header { z-index: 3; }
+@utility z-table-corner { z-index: 4; }
+
+/* ─── Typography composites ──────────────────────────────────────────────────
+ * Bundle font-family + size + line-height + letter-spacing + weight into a
+ * single utility. Named typography-* to avoid collision with Tailwind v4's
+ * text-* namespace (color, size, alignment, decoration).
+ *
+ * Override pattern: append a later utility (font-bold, leading-5, tracking-wide)
+ * to override any single property — Tailwind's conflict resolution wins.
+ *
+ * Token source: primitive.css → @theme typography block. */
+@utility typography-display {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-display);
+  line-height:    var(--typography-display--line-height);
+  letter-spacing: var(--typography-display--letter-spacing);
+  font-weight:    var(--font-weight-semibold);
+}
+
+@utility typography-subtitle {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-subtitle);
+  line-height:    var(--typography-subtitle--line-height);
+  letter-spacing: var(--typography-subtitle--letter-spacing);
+  font-weight:    var(--font-weight-semibold);
+}
+
+@utility typography-body {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-body);
+  line-height:    var(--typography-body--line-height);
+  letter-spacing: var(--typography-body--letter-spacing);
+  font-weight:    var(--font-weight-regular);
+}
+
+@utility typography-label {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-label);
+  line-height:    var(--typography-label--line-height);
+  letter-spacing: var(--typography-label--letter-spacing);
+  font-weight:    var(--font-weight-regular);
+}
+
+@utility typography-caption {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-caption);
+  line-height:    var(--typography-caption--line-height);
+  letter-spacing: var(--typography-caption--letter-spacing);
+  font-weight:    var(--font-weight-regular);
+}
+
+@utility typography-meta {
+  font-family:    var(--font-mono);
+  font-size:      var(--typography-meta);
+  line-height:    var(--typography-meta--line-height);
+  letter-spacing: var(--typography-meta--letter-spacing);
+  font-weight:    var(--font-weight-regular);
+}
+
+@utility typography-code {
+  font-family:    var(--font-mono);
+  font-size:      var(--typography-code);
+  line-height:    var(--typography-code--line-height);
+  letter-spacing: var(--typography-code--letter-spacing);
+  font-weight:    var(--font-weight-regular);
+}
+
+@utility typography-table-header {
+  font-family:    var(--font-sans);
+  font-size:      var(--typography-table-header);
+  line-height:    var(--typography-table-header--line-height);
+  letter-spacing: var(--typography-table-header--letter-spacing);
+  font-weight:    var(--font-weight-medium);
+  text-transform: uppercase;
+}

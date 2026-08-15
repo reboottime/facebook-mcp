@@ -1,0 +1,44 @@
+# Deploy on every push to main — which is what a merged PR produces.
+# Order matters: Neon migrations are NOT applied on app boot (see CLAUDE.md
+# → Live deployment), so they run here, before the Fly deploy, against the
+# direct (non-pooler) endpoint. One deploy at a time via the concurrency
+# group; a newer push cancels a queued (not yet deploying) older one.
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Migrate Neon + deploy to Fly
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install api deps (migration script needs pg)
+        run: pnpm install --frozen-lockfile --filter api
+
+      - name: Apply Neon migrations
+        working-directory: apps/api
+        env:
+          NEON_DATABASE_URL: ${{ secrets.NEON_DATABASE_URL }}
+        run: node scripts/apply-neon-migrations.mjs
+
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy to Fly
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: flyctl deploy -a myclover --remote-only

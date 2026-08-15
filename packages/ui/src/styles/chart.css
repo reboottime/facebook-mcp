@@ -1,0 +1,31 @@
+/* =============================================================================
+ * Data-viz chart palette — categorical series colors.
+ *
+ * Status: reserved for upcoming chart surfaces. No active consumers as of
+ * 2026-06-27 — the current burndown chart (apps/portal usage page, Recharts)
+ * paints with --color-primary. These tokens stay ready so the next chart that
+ * needs categorical series can adopt them without a token round-trip.
+ *
+ * chart-1 and chart-7 anchor to brand primitives (orange + running) so default
+ * brand-aligned series stay on identity. chart-2..6 and chart-8 are off-palette
+ * categorical hues, tuned for distinguishability in both modes.
+ *
+ * Atlassian retheme (2026-07-23, @atlaskit/tokens@16.3.0): --orange-700 and
+ * --running-600 both now resolve to #1558BC (ADS Blue800) in light mode — the
+ * primitive swap collapsed two previously-distinct hues to the identical value.
+ * chart-1 and chart-7 are therefore visually indistinguishable in light mode
+ * until this file gets real consumers. No functional break today (no active
+ * consumers per the status note above), but the next chart that adopts this
+ * palette needs chart-1 or chart-7 re-anchored to a different primitive, or a
+ * dedicated chart-scoped brand hue, before shipping two identical series colors.
+ * ============================================================================= */
+@theme {
+  --color-chart-1: light-dark(var(--orange-700),  var(--orange-500));
+  --color-chart-2: light-dark(#C26A00,            #FFB454);
+  --color-chart-3: light-dark(#CE2F6B,            #F46EB0);
+  --color-chart-4: light-dark(#5B43C9,            #9D8CFF);
+  --color-chart-5: light-dark(#3C8C3F,            #8DDB4A);
+  --color-chart-6: light-dark(#D33B2C,            #FF7066);
+  --color-chart-7: light-dark(var(--running-600), var(--running-400));
+  --color-chart-8: light-dark(#5C6B7C,            #C0CAD6);
+}

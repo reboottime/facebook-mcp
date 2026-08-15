@@ -1,0 +1,153 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+
+jobs:
+  # Detect which packages changed for conditional jobs
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      ui: ${{ steps.filter.outputs.ui }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            ui:
+              - 'packages/ui/src/**'
+              - '!packages/ui/src/**/*.test.tsx'
+              - 'packages/ui/.storybook/**'
+
+  quality:
+    name: Lint & Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: ./.github/actions/setup
+
+      - run: pnpm turbo run lint check-types
+
+      - name: Forbidden token patterns
+        run: |
+          set -e
+          # Hex/rgb/oklch literals in property values outside the primitives directory.
+          # Pattern matches the value portion before any trailing comment (--prop: <value> /* comment */).
+          # The [^/]* between the colon and the literal ensures we're in the value, not a comment.
+          if grep -rEn '^\s+--[^:]+:\s+[^/]*(#[0-9a-fA-F]{3,8}|rgb\(|rgba\(|oklch\(|oklab\(|hsl\(|hsla\()' \
+            packages/ui/src/styles/semantic/ packages/ui/src/styles/base.css packages/ui/src/styles/utilities.css \
+            --include='*.css'; then
+            echo "ERROR: literal color values found outside primitives — add to packages/ui/src/styles/primitives/color.css instead"
+            exit 1
+          fi
+          # Arbitrary Tailwind bracket values in packages/ui components and stories.
+          # (apps/** has pre-existing legacy usage caught by ESLint; grep only covers the design-system layer.)
+          # Lines with eslint-disable comments are legitimate documented exceptions.
+          if grep -rEn '\b(bg|text|border|ring|fill|stroke|outline|divide|decoration|accent|caret|placeholder|from|via|to|shadow|blur|backdrop-blur|rounded)-\[' \
+            packages/ui/src/components/ packages/ui/src/stories/ \
+            --include='*.tsx' --include='*.ts' | grep -v 'eslint-disable' | grep -v '^\s*/\*\|^\S*:\s*//'; then
+            echo "ERROR: arbitrary Tailwind bracket values found in packages/ui — use a token (bg-primary) or v4 prop-(--x) syntax"
+            exit 1
+          fi
+          echo "Token pattern check passed."
+
+  test:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: ./.github/actions/setup
+
+      - run: pnpm turbo run test
+
+  chromatic:
+    name: Visual Review (Components)
+    needs: [changes]
+    if: needs.changes.outputs.ui == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      # secrets aren't readable in a job-level `if`, so gate per-step: no
+      # CHROMATIC_PROJECT_TOKEN configured → skip the visual review green
+      # instead of failing every ui-touching PR.
+      - name: Check Chromatic token
+        id: chromatic-token
+        env:
+          CHROMATIC_PROJECT_TOKEN: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+        run: |
+          if [ -n "$CHROMATIC_PROJECT_TOKEN" ]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::CHROMATIC_PROJECT_TOKEN secret not set — visual review skipped"
+          fi
+
+      - uses: actions/checkout@v4
+        if: steps.chromatic-token.outputs.configured == 'true'
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+        if: steps.chromatic-token.outputs.configured == 'true'
+
+      - name: Build Storybook
+        if: steps.chromatic-token.outputs.configured == 'true'
+        run: pnpm turbo run build-storybook --filter=@repo/ui
+
+      - name: Run Chromatic
+        if: steps.chromatic-token.outputs.configured == 'true'
+        uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          workingDir: packages/ui
+          storybookBuildDir: storybook-static
+          onlyChanged: true
+          autoAcceptChanges: main
+          exitZeroOnChanges: true
+          externals: |
+            src/styles/**
+
+  build:
+    name: Build
+    needs: [quality, test]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - uses: ./.github/actions/setup
+
+      - run: pnpm turbo run build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:3002
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portal-build
+          path: apps/portal/.next
+          retention-days: 1
+          include-hidden-files: true
+

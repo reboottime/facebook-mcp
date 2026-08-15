@@ -1,0 +1,33 @@
+name: Cron
+
+on:
+  schedule:
+    # Daily 08:00 UTC — recurring-job auto-scheduler's "keeps rolling" path
+    # (recurring-scheduler spec §Change 5). Tops up every recurring booking's
+    # materialized horizon; idempotent, safe to run daily.
+    - cron: "0 8 * * *"
+  workflow_dispatch:
+
+# Required secrets:
+#   CRON_SECRET   - bearer token accepted by apps/api's requireCronSecret gate
+#
+# Scoped to /materialize only. The API also exposes /api/cron/reminders,
+# /api/cron/escalations, and /api/cron/run-sheets — those send real Twilio
+# messages and are deliberately NOT wired up here; add them in a dedicated,
+# deliberate pass.
+
+jobs:
+  materialize:
+    name: Materialize recurring jobs
+    runs-on: ubuntu-latest
+    steps:
+      - name: POST /api/cron/materialize
+        run: |
+          status=$(curl -s -o /tmp/response.json -w "%{http_code}" -X POST \
+            "https://myclover.fly.dev/api/cron/materialize" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          cat /tmp/response.json
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Cron call failed with HTTP $status"
+            exit 1
+          fi
