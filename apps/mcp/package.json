@@ -1,0 +1,36 @@
+{
+  "name": "mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "social-mcp": "./dist/index.js"
+  },
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "check-types": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' jest --passWithNoTests",
+    "verify:stdio": "tsx scripts/verify-stdio.ts"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@repo/config.eslint": "workspace:*",
+    "@repo/config.typescript": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^26.2.0",
+    "eslint": "^9.39.1",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.23.12",
+    "typescript": "5.9.2"
+  }
+}

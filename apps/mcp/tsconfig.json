@@ -1,0 +1,11 @@
+{
+  "extends": "@repo/config.typescript/base.json",
+  "compilerOptions": {
+    "lib": ["es2023"],
+    "noEmit": true,
+    "outDir": "dist",
+    "types": ["node", "jest"]
+  },
+  "include": ["src", "scripts"],
+  "exclude": ["node_modules", "dist"]
+}
