@@ -59,6 +59,37 @@ the **same** tool registry — the auth context is what differs: stdio's context
 by the operator's `META_ACCESS_TOKEN` env var, HTTP's is backed by the authenticated
 user's stored token and selected Page.
 
+## Why one server, not one per platform
+
+A natural instinct is to split this into separate servers — one for the Facebook Page, one
+for Reels, one for the linked Instagram account. **Don't.** They are facets of a single
+Meta Graph surface behind one Meta app, one login, and one token per user — not three
+services. Splitting them triples the setup for zero benefit and breaks the features that
+span them.
+
+- **Reels are not a separate platform — they are a publishing format on the Page.** A Reel
+  publishes to `POST /{page-id}/video_reels` using the *same* Page access token and the
+  *same* `pages_manage_posts` permission as an ordinary post. There is no separate Reels
+  API to authenticate against, so a "Reels server" would own no credential and no endpoint
+  of its own.
+- **The linked Instagram account is reached *through* the Page.** It is the
+  `instagram_business_account` attached to the Page. Publishing goes to the same Graph API
+  under the same Meta app, and the user grants the Instagram permissions in the *same*
+  Facebook Login consent. One OAuth flow, one stored token context, covers both surfaces.
+- **One app · one login · one token.** Because all three ride the same Meta app and the
+  same per-user token, three servers would mean three OAuth flows, three client
+  registrations in the MCP client (Hermes), and three token stores — for a single
+  credential.
+- **Cross-posting would break.** `cross_post` republishes content between the Page and its
+  linked Instagram account in one call. Across three servers that becomes cross-*server*
+  coordination — the one feature that most wants a shared context loses it.
+
+The separation that *is* real lives at the **tool** layer, not the server layer, and is
+already there: `publish_post` (Page), `publish_reel` (Reel), `publish_instagram` (linked
+Instagram account), `cross_post`, plus per-surface Insights and comment tools. One server,
+one tool per job. See [`product/platform.md`](product/platform.md) for the platform
+primitives and the canonical terms these tools use.
+
 ## Components
 
 | Layer | What it does | Key files |
