@@ -7,6 +7,7 @@ import {
 } from "../services/cross-post.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
+import { graphIdSchema } from "./schemas.js";
 
 const inputSchema = {
   source_platform: z
@@ -14,12 +15,10 @@ const inputSchema = {
     .describe(
       'Where the original lives. "facebook" republishes a Page post to Instagram; "instagram" republishes IG media to the Page.',
     ),
-  source_id: z
-    .string()
-    .describe(
-      'Id of the original — a Facebook post id like "102938475610293_9988776655" or an Instagram media id like "17895695668004550".',
-    ),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  source_id: graphIdSchema("source_id").describe(
+    'Id of the original — a Facebook post id like "102938475610293_9988776655" or an Instagram media id like "17895695668004550".',
+  ),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
   caption: z
     .string()
     .optional()

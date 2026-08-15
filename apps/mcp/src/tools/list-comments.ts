@@ -6,16 +6,14 @@ import {
 } from "../services/comments.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { platformSchema } from "./schemas.js";
+import { graphIdSchema, platformSchema } from "./schemas.js";
 
 const inputSchema = {
   platform: platformSchema,
-  object_id: z
-    .string()
-    .describe(
-      'Id of the thing that was commented on — a Facebook post id like "102938475610293_9988776655" or an Instagram media id like "17895695668004550".',
-    ),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  object_id: graphIdSchema("object_id").describe(
+    'Id of the thing that was commented on — a Facebook post id like "102938475610293_9988776655" or an Instagram media id like "17895695668004550".',
+  ),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
   limit: z
     .number()
     .int()

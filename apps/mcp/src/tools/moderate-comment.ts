@@ -9,21 +9,23 @@ import {
 import type { ResolvedPage } from "../services/pages.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { platformSchema, verificationSchema } from "./schemas.js";
+import {
+  graphIdSchema,
+  platformSchema,
+  verificationSchema,
+} from "./schemas.js";
 
 const inputSchema = {
   platform: platformSchema,
-  comment_id: z
-    .string()
-    .describe(
-      'Id of the comment to moderate, e.g. "9988776655_1122334455" on Facebook or "17895695668004550" on Instagram.',
-    ),
+  comment_id: graphIdSchema("comment_id").describe(
+    'Id of the comment to moderate, e.g. "9988776655_1122334455" on Facebook or "17895695668004550" on Instagram.',
+  ),
   action: z
     .enum(["hide", "unhide", "delete"])
     .describe(
       'What to do: "hide" removes it from public view but keeps it, "unhide" restores it, "delete" removes it permanently.',
     ),
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
 };
 
 const outputSchema = {

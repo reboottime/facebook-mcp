@@ -10,11 +10,10 @@ import {
 import type { ResolvedInstagramAccount } from "../services/pages.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { verificationSchema } from "./schemas.js";
+import { graphIdSchema, verificationSchema } from "./schemas.js";
 
 const inputSchema = {
-  page_id: z
-    .string()
+  page_id: graphIdSchema("page_id")
     .optional()
     .describe(
       `${PAGE_ID_DESCRIPTION} The Instagram account is taken from that Page's link.`,

@@ -3,10 +3,10 @@ import { z } from "zod";
 import { readPostQueue } from "../services/queue.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
-import { pageRefSchema } from "./schemas.js";
+import { graphIdSchema, pageRefSchema } from "./schemas.js";
 
 const inputSchema = {
-  page_id: z.string().optional().describe(PAGE_ID_DESCRIPTION),
+  page_id: graphIdSchema("page_id").optional().describe(PAGE_ID_DESCRIPTION),
   limit: z
     .number()
     .int()
