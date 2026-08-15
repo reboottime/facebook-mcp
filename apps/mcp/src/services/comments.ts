@@ -229,7 +229,7 @@ export async function deleteComment(
     }
   } catch (error) {
     warnings.push(
-      `Issued the delete but could not confirm removal: ${describe(error)}`,
+      `Deletion issued; readback inconclusive: ${describe(error)}. Check the comment on the post before assuming it is gone.`,
     );
   }
 

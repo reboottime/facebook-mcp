@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { publishFacebookReel } from "../services/publishing.js";
-import { toScheduledUnixSeconds } from "../services/scheduling.js";
+import { toScheduledReelUnixSeconds } from "../services/scheduling.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
 import { pageRefSchema, verificationSchema } from "./schemas.js";
@@ -23,7 +23,7 @@ const inputSchema = {
     .string()
     .optional()
     .describe(
-      'ISO 8601 timestamp to publish at, e.g. "2026-09-01T10:15:30Z". Must be 10 minutes to 30 days out. Omit to publish immediately.',
+      'ISO 8601 timestamp to publish at, e.g. "2026-09-01T10:15:30Z". Must be 10 minutes to 29 days out — Meta caps scheduled reels at 29 days. Omit to publish immediately.',
     ),
 };
 
@@ -57,7 +57,7 @@ export const registerPublishReelTool: ToolRegistration = (server, context) => {
           videoUrl: args.video_url,
           description: args.description,
           scheduledPublishTime: args.scheduled_publish_time
-            ? toScheduledUnixSeconds(args.scheduled_publish_time)
+            ? toScheduledReelUnixSeconds(args.scheduled_publish_time)
             : undefined,
         });
       }),

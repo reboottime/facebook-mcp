@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { publishFacebookPost } from "../services/publishing.js";
-import { toScheduledUnixSeconds } from "../services/scheduling.js";
+import { toScheduledPostUnixSeconds } from "../services/scheduling.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
 import { pageRefSchema, verificationSchema } from "./schemas.js";
@@ -65,7 +65,7 @@ export const registerPublishPostTool: ToolRegistration = (server, context) => {
           link: args.link,
           photoUrls: args.photo_urls,
           scheduledPublishTime: args.scheduled_publish_time
-            ? toScheduledUnixSeconds(args.scheduled_publish_time)
+            ? toScheduledPostUnixSeconds(args.scheduled_publish_time)
             : undefined,
         });
       }),

@@ -29,7 +29,7 @@ export const registerDeletePostTool: ToolRegistration = (server, context) => {
         "Permanently deletes a Page post. Use this to cancel a scheduled post or take down a published one. After the delete the id is looked up again and the result reports whether it is really gone. This cannot be undone.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     (args) =>
       runTool(async () => {

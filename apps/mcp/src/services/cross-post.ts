@@ -7,6 +7,10 @@ import {
 } from "../graph/index.js";
 import type { ResolvedInstagramAccount, ResolvedPage } from "./pages.js";
 import {
+  toScheduledPostUnixSeconds,
+  toScheduledReelUnixSeconds,
+} from "./scheduling.js";
+import {
   publishFacebookPost,
   publishFacebookReel,
   publishInstagramImage,
@@ -88,7 +92,7 @@ export async function crossPostInstagramToFacebook(
   input: {
     mediaId: string;
     caption?: string;
-    scheduledPublishTime?: number;
+    scheduledPublishTime?: string;
   },
 ): Promise<CrossPostToFacebookResult> {
   const media = await readInstagramMedia(page.client, input.mediaId);
@@ -109,7 +113,9 @@ export async function crossPostInstagramToFacebook(
     const published = await publishFacebookReel(page, {
       videoUrl: media.media_url,
       description: message,
-      scheduledPublishTime: input.scheduledPublishTime,
+      scheduledPublishTime: input.scheduledPublishTime
+        ? toScheduledReelUnixSeconds(input.scheduledPublishTime)
+        : undefined,
     });
 
     return { source, target: { platform: "facebook", kind: "reel", ...published } };
@@ -131,7 +137,9 @@ export async function crossPostInstagramToFacebook(
   const published = await publishFacebookPost(page, {
     message,
     photoUrls,
-    scheduledPublishTime: input.scheduledPublishTime,
+    scheduledPublishTime: input.scheduledPublishTime
+      ? toScheduledPostUnixSeconds(input.scheduledPublishTime)
+      : undefined,
   });
 
   return { source, target: { platform: "facebook", kind: "post", ...published } };

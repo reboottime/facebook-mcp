@@ -5,7 +5,6 @@ import {
   crossPostFacebookToInstagram,
   crossPostInstagramToFacebook,
 } from "../services/cross-post.js";
-import { toScheduledUnixSeconds } from "../services/scheduling.js";
 import { PAGE_ID_DESCRIPTION, type ToolRegistration } from "./context.js";
 import { runTool } from "./result.js";
 
@@ -31,7 +30,7 @@ const inputSchema = {
     .string()
     .optional()
     .describe(
-      'ISO 8601 timestamp for the Facebook copy, e.g. "2026-09-01T10:15:30Z". Only valid when source_platform is "instagram" — Instagram publishing is always immediate.',
+      'ISO 8601 timestamp for the Facebook copy, e.g. "2026-09-01T10:15:30Z". Must be 10 minutes to 30 days out, or 29 days when the source is an Instagram video and the copy lands as a reel. Only valid when source_platform is "instagram" — Instagram publishing is always immediate.',
     ),
 };
 
@@ -60,21 +59,19 @@ export const registerCrossPostTool: ToolRegistration = (server, context) => {
     },
     (args) =>
       runTool(async () => {
-        const scheduledPublishTime = args.scheduled_publish_time
-          ? toScheduledUnixSeconds(args.scheduled_publish_time)
-          : undefined;
-
         if (args.source_platform === "instagram") {
           const page = await context.pages.resolve(args.page_id);
 
+          // The schedule window depends on whether the copy lands as a reel (29 days) or a
+          // photo post (30), which is only known once the source media type is read.
           return crossPostInstagramToFacebook(page, {
             mediaId: args.source_id,
             caption: args.caption,
-            scheduledPublishTime,
+            scheduledPublishTime: args.scheduled_publish_time,
           });
         }
 
-        if (scheduledPublishTime !== undefined) {
+        if (args.scheduled_publish_time !== undefined) {
           throw new InvalidToolInputError(
             "Instagram has no scheduling API, so scheduled_publish_time cannot be used when copying a Facebook post to Instagram.",
           );

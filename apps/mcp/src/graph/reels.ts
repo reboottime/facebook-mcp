@@ -5,10 +5,20 @@ export type ReelUploadSession = {
   upload_url: string;
 };
 
+// `status.publishing_phase` is the only scheduled-state signal Meta exposes for a reel:
+// publish_status is one of draft / published / scheduled / error, publish_time is the actual
+// or scheduled publish time as a Unix timestamp.
 export type ReelVideo = {
   id: string;
   permalink_url?: string;
-  status?: { video_status?: string };
+  status?: {
+    video_status?: string;
+    publishing_phase?: {
+      status?: string;
+      publish_status?: string;
+      publish_time?: number;
+    };
+  };
 };
 
 export type FinishReelInput = {

@@ -1,9 +1,14 @@
 import type { GraphClient } from "./client.js";
 import { GraphApiError } from "./errors.js";
 
-// Graph reports a deleted or never-existing node as a 100/803 "does not exist" error rather
-// than an empty success, so absence has to be read off the error shape.
-const MISSING_OBJECT_CODES = new Set([100, 803]);
+// Graph signals a node that is gone in exactly two shapes: code 803 ("Some of the aliases you
+// requested do not exist") and code 100 with subcode 33 ("Object with ID ... does not exist,
+// cannot be loaded due to missing permissions, or does not support this operation"). Bare code
+// 100 is the generic "Invalid parameter" and says nothing about existence, so it must never be
+// read as proof of deletion — every other error is inconclusive and re-thrown to the caller.
+const ALIAS_MISSING_CODE = 803;
+const GRAPH_METHOD_CODE = 100;
+const GRAPH_METHOD_MISSING_SUBCODE = 33;
 
 export async function deleteGraphObject(
   client: GraphClient,
@@ -30,7 +35,8 @@ export async function graphObjectExists(
 
 function isMissingObject(error: GraphApiError): boolean {
   return (
-    (error.code !== undefined && MISSING_OBJECT_CODES.has(error.code)) ||
-    error.status === 404
+    error.code === ALIAS_MISSING_CODE ||
+    (error.code === GRAPH_METHOD_CODE &&
+      error.subcode === GRAPH_METHOD_MISSING_SUBCODE)
   );
 }

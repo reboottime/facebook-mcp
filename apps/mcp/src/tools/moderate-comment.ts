@@ -45,7 +45,7 @@ export const registerModerateCommentTool: ToolRegistration = (
         "Moderates a comment on a Facebook post or an Instagram post. Hiding is reversible; deleting is not. The comment is read back after the change and the result reports whether it took effect.",
       inputSchema,
       outputSchema,
-      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: true },
+      annotations: { readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: true },
     },
     (args) =>
       runTool(async () => {

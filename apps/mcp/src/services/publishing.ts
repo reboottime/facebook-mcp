@@ -178,13 +178,31 @@ export async function publishFacebookReel(
   let verified = false;
   let permalink: string | undefined;
   let videoStatus: string | undefined;
+  let scheduledIso = toIsoTimestamp(input.scheduledPublishTime);
 
   try {
     const stored = await readReel(page.client, session.video_id);
+    const phase = stored.status?.publishing_phase;
 
     permalink = stored.permalink_url;
     videoStatus = stored.status?.video_status;
     verified = true;
+
+    if (scheduled) {
+      scheduledIso = toIsoTimestamp(phase?.publish_time) ?? scheduledIso;
+
+      if (phase?.publish_status === undefined) {
+        verified = false;
+        warnings.push(
+          "Meta has not reported a publishing status for the reel yet, so the schedule is unconfirmed — check it in Meta Business Suite before relying on it.",
+        );
+      } else if (phase.publish_status !== "scheduled") {
+        verified = false;
+        warnings.push(
+          `The reel was requested as scheduled but Meta reports its publishing status as "${phase.publish_status}".`,
+        );
+      }
+    }
   } catch (error) {
     warnings.push(
       `Finished the reel upload but could not read the video back: ${describe(error)}`,
@@ -197,7 +215,7 @@ export async function publishFacebookReel(
     page: { id: page.id, name: page.name },
     description: input.description,
     permalink_url: permalink,
-    scheduled_publish_time: toIsoTimestamp(input.scheduledPublishTime),
+    scheduled_publish_time: scheduledIso,
     video_status: videoStatus,
     verified,
     warnings,

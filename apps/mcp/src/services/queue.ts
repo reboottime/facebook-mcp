@@ -61,7 +61,7 @@ export async function deletePost(
     }
   } catch (error) {
     warnings.push(
-      `Issued the delete but could not confirm removal: ${error instanceof Error ? error.message : String(error)}`,
+      `Deletion issued; readback inconclusive: ${error instanceof Error ? error.message : String(error)}. Check the post on the Page before assuming it is gone.`,
     );
   }
 
