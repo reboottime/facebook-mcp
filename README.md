@@ -1,24 +1,46 @@
 # Social MCP
 
-MCP (Model Context Protocol) server for managing the operator's Facebook account, Facebook Reels, and Instagram — plus an optional web dashboard for review surfaces.
+MCP (Model Context Protocol) server for managing a **Facebook Page** and its linked
+**Instagram Business account** via the Meta Graph API — publish and schedule posts and
+Reels, cross-post between platforms, manage comments, and read insights. Pages only;
+never personal profiles.
 
-Scaffolded 2026-08-14 from the listo process toolkit: same orchestration harness (`.claude/` agents, hooks, workflows, skills) and same tech stack (Turborepo + pnpm, TypeScript, React 19 / Next.js, Tailwind v4, Express 5 + Drizzle, `@repo/ui` design system).
+One TypeScript server ([`apps/mcp`](apps/mcp)) exposes the same 12-tool catalog over
+two transports:
 
-## Layout
+- **stdio** — single operator, authenticated by an env token (personal use).
+- **Streamable HTTP + OAuth 2.1** — multi-user remote server with Facebook Login
+  onboarding and encrypted per-user token storage (Drizzle; PGlite in dev, Neon in
+  production).
 
-- `apps/` — applications (planned: `apps/mcp` MCP server; optional `apps/web` dashboard)
-- `packages/ui` — shared design system (`@repo/ui`)
-- `packages/libs` — shared utilities (`@repo/libs`)
-- `docs/` — canonical record (product, conventions, testing, tech stack)
-- `.intermediate/` — gitignored workspace for exploratory artifacts
-- `.state/state.md` — current lifecycle phase; read before starting work
-- `.claude/` — orchestration harness: agents, commands, hooks, skills, workflows
+Details: [`docs/architecture.md`](docs/architecture.md).
 
 ## Getting started
 
 ```sh
 pnpm install
-pnpm dev
+pnpm exec turbo run build --filter=mcp
+pnpm --filter mcp verify:stdio   # offline round-trip of all 12 tools, no token needed
 ```
 
-Start with `CLAUDE.md` and `.state/state.md`.
+**To connect it to a real Meta app** — register your own app in dev mode, get a token,
+hook up an MCP client, and (optionally) the go-live path for serving other users —
+start with [`docs/setup.md`](docs/setup.md).
+
+Add the server to Claude Code:
+
+```sh
+claude mcp add social-mcp -- node <repo>/apps/mcp/dist/index.js
+```
+
+## Layout
+
+- `apps/mcp` — the MCP server: both transports, tools, Graph API client, Drizzle
+  schemas, verify scripts
+- `packages/ui`, `packages/libs` — shared design system (`@repo/ui`) and utilities
+- `docs/` — setup guides, architecture, tech stack, conventions, testing,
+  [`fly-deployment.md`](docs/fly-deployment.md)
+- `.state/state.md` — current lifecycle phase; read before starting work
+- `.claude/` — orchestration harness: agents, commands, hooks, skills, workflows
+
+Stack: TypeScript (ESM), Turborepo + pnpm, `@modelcontextprotocol/sdk`, Drizzle ORM.

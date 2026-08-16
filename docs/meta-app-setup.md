@@ -5,6 +5,10 @@ real Meta Graph API": registering the Meta developer app, getting credentials, w
 environment, and smoke-testing both transports. Deployment specifics live in
 [`fly-deployment.md`](fly-deployment.md).
 
+> **Personal use only?** If the server will only ever manage your own Page/IG account,
+> follow [`personal-use-setup.md`](personal-use-setup.md) instead — it skips App
+> Review, business verification, and Live Mode entirely (steps 6–7 here don't apply).
+
 Meta's official registration guide:
 <https://developers.facebook.com/documentation/development/create-an-app#app-creation-steps>
 
@@ -77,9 +81,12 @@ app creation is harmless.
    `instagram_manage_insights`, `business_management`.
 3. Generate a User Access Token → grant it against your Page(s) and the linked
    Instagram Business account.
-4. Exchange it for a long-lived token: Graph API Explorer's token → **Access Token
-   Tool** → "Extend Access Token", or
-   `GET /oauth/access_token?grant_type=fb_exchange_token&...`.
+4. Exchange it for a long-lived token: blue **ⓘ** next to the token → **Open in
+   Access Token Tool** (<https://developers.facebook.com/tools/accesstoken/>) →
+   "Extend Access Token", or
+   `GET /oauth/access_token?grant_type=fb_exchange_token&...`. Inspect scopes/expiry
+   anytime in the Access Token Debugger:
+   <https://developers.facebook.com/tools/debug/accesstoken/>.
 5. Create `apps/mcp/.env.local` (the **app directory**, not the repo root — this is
    where `src/env.ts` reads it):
 
